@@ -1,0 +1,13 @@
+# Change Impact Analysis Skill — Python Dependencies
+#
+# Core runtime: Python standard library only (no mandatory dependencies).
+# Optional packages unlock additional features:
+
+# YAML support — enables parsing of OpenAPI / Swagger YAML specs
+# Without this, only JSON specs are parsed (YAML specs that are also valid JSON
+# still work; pure-YAML-syntax specs are skipped with a warning).
+PyYAML>=6.0
+
+# Rich terminal output — optional, improves CLI readability
+# The skill falls back to plain text if not installed.
+# rich>=13.0

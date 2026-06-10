@@ -1,0 +1,338 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" font-family="'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="inputGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.18"/>
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:0.08"/>
+    </linearGradient>
+    <linearGradient id="engineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.20"/>
+      <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:0.08"/>
+    </linearGradient>
+    <linearGradient id="outputGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.20"/>
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:0.08"/>
+    </linearGradient>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1e40af"/>
+      <stop offset="50%" style="stop-color:#4f46e5"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="115%" height="115%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <marker id="arrow-amber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#60a5fa"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#34d399"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+
+  <!-- Subtle grid lines -->
+  <g stroke="#ffffff" stroke-opacity="0.025" stroke-width="1">
+    <line x1="0" y1="108" x2="1920" y2="108"/>
+    <line x1="0" y1="216" x2="1920" y2="216"/>
+    <line x1="0" y1="324" x2="1920" y2="324"/>
+    <line x1="0" y1="432" x2="1920" y2="432"/>
+    <line x1="0" y1="540" x2="1920" y2="540"/>
+    <line x1="0" y1="648" x2="1920" y2="648"/>
+    <line x1="0" y1="756" x2="1920" y2="756"/>
+    <line x1="0" y1="864" x2="1920" y2="864"/>
+    <line x1="0" y1="972" x2="1920" y2="972"/>
+    <line x1="192" y1="0" x2="192" y2="1080"/>
+    <line x1="384" y1="0" x2="384" y2="1080"/>
+    <line x1="576" y1="0" x2="576" y2="1080"/>
+    <line x1="768" y1="0" x2="768" y2="1080"/>
+    <line x1="960" y1="0" x2="960" y2="1080"/>
+    <line x1="1152" y1="0" x2="1152" y2="1080"/>
+    <line x1="1344" y1="0" x2="1344" y2="1080"/>
+    <line x1="1536" y1="0" x2="1536" y2="1080"/>
+    <line x1="1728" y1="0" x2="1728" y2="1080"/>
+  </g>
+
+  <!-- Header bar -->
+  <rect x="0" y="0" width="1920" height="90" fill="url(#headerGrad)" filter="url(#shadow)"/>
+  <rect x="0" y="86" width="1920" height="4" fill="#6366f1" opacity="0.6"/>
+
+  <!-- Header title -->
+  <text x="960" y="36" text-anchor="middle" font-size="30" font-weight="700" fill="#ffffff" letter-spacing="1">
+    CHANGE IMPACT ANALYSIS SKILL
+  </text>
+  <text x="960" y="68" text-anchor="middle" font-size="17" font-weight="400" fill="#c7d2fe" letter-spacing="2">
+    SDLC PHASE: DEPLOYMENT / RELEASE  ·  GRAPH-DRIVEN  ·  DETERMINISTIC
+  </text>
+
+  <!-- SDLC badge -->
+  <rect x="28" y="18" width="160" height="54" rx="8" fill="#ffffff" fill-opacity="0.08" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="108" y="40" text-anchor="middle" font-size="11" font-weight="600" fill="#a5b4fc" letter-spacing="1">DEPLOYMENT</text>
+  <text x="108" y="58" text-anchor="middle" font-size="11" font-weight="600" fill="#a5b4fc" letter-spacing="1">RELEASE</text>
+
+  <!-- Version badge -->
+  <rect x="1732" y="18" width="160" height="54" rx="8" fill="#ffffff" fill-opacity="0.08" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="1812" y="40" text-anchor="middle" font-size="11" font-weight="600" fill="#a5b4fc" letter-spacing="1">VERSION</text>
+  <text x="1812" y="58" text-anchor="middle" font-size="14" font-weight="700" fill="#e0e7ff">1.0.0</text>
+
+  <!-- ─────────────── COLUMN BACKGROUNDS ─────────────── -->
+  <!-- Input column -->
+  <rect x="32" y="108" width="440" height="882" rx="16" fill="url(#inputGrad)" stroke="#f59e0b" stroke-width="1.5" stroke-opacity="0.35" filter="url(#shadow)"/>
+  <!-- Engine column -->
+  <rect x="520" y="108" width="880" height="882" rx="16" fill="url(#engineGrad)" stroke="#3b82f6" stroke-width="1.5" stroke-opacity="0.35" filter="url(#shadow)"/>
+  <!-- Output column -->
+  <rect x="1448" y="108" width="440" height="882" rx="16" fill="url(#outputGrad)" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.35" filter="url(#shadow)"/>
+
+  <!-- Column headers -->
+  <rect x="32" y="108" width="440" height="52" rx="16" fill="#f59e0b" fill-opacity="0.20"/>
+  <rect x="32" y="140" width="440" height="20" fill="#f59e0b" fill-opacity="0.20"/>
+  <text x="252" y="141" text-anchor="middle" font-size="15" font-weight="700" fill="#fcd34d" letter-spacing="2">INPUTS</text>
+
+  <rect x="520" y="108" width="880" height="52" rx="16" fill="#3b82f6" fill-opacity="0.20"/>
+  <rect x="520" y="140" width="880" height="20" fill="#3b82f6" fill-opacity="0.20"/>
+  <text x="960" y="141" text-anchor="middle" font-size="15" font-weight="700" fill="#93c5fd" letter-spacing="2">ANALYSIS ENGINE</text>
+
+  <rect x="1448" y="108" width="440" height="52" rx="16" fill="#10b981" fill-opacity="0.20"/>
+  <rect x="1448" y="140" width="440" height="20" fill="#10b981" fill-opacity="0.20"/>
+  <text x="1668" y="141" text-anchor="middle" font-size="15" font-weight="700" fill="#6ee7b7" letter-spacing="2">OUTPUTS</text>
+
+  <!-- ─────────────── INPUT BOXES ─────────────── -->
+  <!-- I1: Changed Files -->
+  <rect x="54" y="190" width="396" height="76" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="54" y="190" width="8" height="76" rx="4" fill="#f59e0b"/>
+  <text x="80" y="222" font-size="15" font-weight="700" fill="#fef3c7">Changed Files</text>
+  <text x="80" y="244" font-size="12" fill="#94a3b8">git diff, staged files, PR diff</text>
+
+  <!-- I2: Dependency Graph -->
+  <rect x="54" y="288" width="396" height="76" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="54" y="288" width="8" height="76" rx="4" fill="#f59e0b"/>
+  <text x="80" y="320" font-size="15" font-weight="700" fill="#fef3c7">Dependency Graph</text>
+  <text x="80" y="342" font-size="12" fill="#94a3b8">import/require chains across all languages</text>
+
+  <!-- I3: API Contracts -->
+  <rect x="54" y="386" width="396" height="76" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="54" y="386" width="8" height="76" rx="4" fill="#f59e0b"/>
+  <text x="80" y="418" font-size="15" font-weight="700" fill="#fef3c7">API Contracts</text>
+  <text x="80" y="440" font-size="12" fill="#94a3b8">OpenAPI, Swagger, GraphQL, Protobuf</text>
+
+  <!-- I4: Deployment Manifests -->
+  <rect x="54" y="484" width="396" height="76" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="54" y="484" width="8" height="76" rx="4" fill="#f59e0b"/>
+  <text x="80" y="516" font-size="15" font-weight="700" fill="#fef3c7">Deployment Manifests</text>
+  <text x="80" y="538" font-size="12" fill="#94a3b8">package.json, Dockerfile, k8s, Helm</text>
+
+  <!-- I5: Ownership Metadata -->
+  <rect x="54" y="582" width="396" height="76" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="54" y="582" width="8" height="76" rx="4" fill="#f59e0b"/>
+  <text x="80" y="614" font-size="15" font-weight="700" fill="#fef3c7">Ownership Metadata</text>
+  <text x="80" y="636" font-size="12" fill="#94a3b8">CODEOWNERS, package.json, pyproject.toml</text>
+
+  <!-- ─────────────── ARROWS: Inputs → Engine ─────────────── -->
+  <!-- I1 → Graph Builder -->
+  <path d="M450 228 L540 228" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-amber)" opacity="0.7"/>
+  <!-- I2 → Graph Builder -->
+  <path d="M450 326 C490 326 490 268 540 268" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-amber)" opacity="0.7"/>
+  <!-- I3 → Contract Validator -->
+  <path d="M450 424 L540 424" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-amber)" opacity="0.7"/>
+  <!-- I4 → Risk Scorer -->
+  <path d="M450 522 L540 522" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-amber)" opacity="0.7"/>
+  <!-- I5 → Ownership Parser -->
+  <path d="M450 620 L540 620" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-amber)" opacity="0.7"/>
+
+  <!-- ─────────────── ENGINE BOXES ─────────────── -->
+  <!-- E1: Dependency Graph Builder -->
+  <rect x="540" y="188" width="392" height="80" rx="10" fill="#1e3a5f" stroke="#60a5fa" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="540" y="188" width="8" height="80" rx="4" fill="#3b82f6"/>
+  <text x="566" y="222" font-size="15" font-weight="700" fill="#bfdbfe">Dependency Graph Builder</text>
+  <text x="566" y="244" font-size="11.5" fill="#64748b">AST-parse imports · Build adjacency list · O(V+E) BFS</text>
+  <text x="880" y="222" text-anchor="end" font-size="11" fill="#3b82f6" font-style="italic">graph_builder.py</text>
+
+  <!-- E2: Impact Analyzer -->
+  <rect x="540" y="290" width="392" height="80" rx="10" fill="#1e3a5f" stroke="#60a5fa" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="540" y="290" width="8" height="80" rx="4" fill="#3b82f6"/>
+  <text x="566" y="324" font-size="15" font-weight="700" fill="#bfdbfe">Impact Analyzer</text>
+  <text x="566" y="346" font-size="11.5" fill="#64748b">Reverse BFS · Classify modules · Detect blast radius</text>
+  <text x="880" y="324" text-anchor="end" font-size="11" fill="#3b82f6" font-style="italic">impact_analyzer.py</text>
+
+  <!-- E3: API Contract Validator -->
+  <rect x="540" y="392" width="392" height="80" rx="10" fill="#1e3a5f" stroke="#60a5fa" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="540" y="392" width="8" height="80" rx="4" fill="#3b82f6"/>
+  <text x="566" y="426" font-size="15" font-weight="700" fill="#bfdbfe">API Contract Validator</text>
+  <text x="566" y="448" font-size="11.5" fill="#64748b">Parse OpenAPI/GQL/Proto · Detect breaking changes</text>
+  <text x="880" y="426" text-anchor="end" font-size="11" fill="#3b82f6" font-style="italic">contract_validator.py</text>
+
+  <!-- E4: Risk Scorer -->
+  <rect x="540" y="494" width="392" height="80" rx="10" fill="#1e3a5f" stroke="#60a5fa" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="540" y="494" width="8" height="80" rx="4" fill="#3b82f6"/>
+  <text x="566" y="528" font-size="15" font-weight="700" fill="#bfdbfe">Risk Scorer</text>
+  <text x="566" y="550" font-size="11.5" fill="#64748b">6-factor weighted model · 0–100 deterministic score</text>
+  <text x="880" y="528" text-anchor="end" font-size="11" fill="#3b82f6" font-style="italic">risk_scorer.py</text>
+
+  <!-- E5: Ownership Parser -->
+  <rect x="540" y="596" width="392" height="80" rx="10" fill="#1e3a5f" stroke="#60a5fa" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="540" y="596" width="8" height="80" rx="4" fill="#3b82f6"/>
+  <text x="566" y="630" font-size="15" font-weight="700" fill="#bfdbfe">Ownership Parser</text>
+  <text x="566" y="652" font-size="11.5" fill="#64748b">CODEOWNERS · package.json · pyproject.toml</text>
+  <text x="880" y="630" text-anchor="end" font-size="11" fill="#3b82f6" font-style="italic">ownership_parser.py</text>
+
+  <!-- E6: Report Generator -->
+  <rect x="540" y="698" width="392" height="80" rx="10" fill="#1e3a5f" stroke="#60a5fa" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="540" y="698" width="8" height="80" rx="4" fill="#3b82f6"/>
+  <text x="566" y="732" font-size="15" font-weight="700" fill="#bfdbfe">Report Generator</text>
+  <text x="566" y="754" font-size="11.5" fill="#64748b">Markdown · JSON · Deployment Checklist</text>
+  <text x="880" y="732" text-anchor="end" font-size="11" fill="#3b82f6" font-style="italic">report_generator.py</text>
+
+  <!-- Orchestrator box (main script) -->
+  <rect x="960" y="188" width="420" height="590" rx="12" fill="#0f2744" stroke="#4f46e5" stroke-width="1.5" stroke-dasharray="8,4" opacity="0.85"/>
+  <text x="1170" y="220" text-anchor="middle" font-size="13" font-weight="600" fill="#a5b4fc" letter-spacing="1">ORCHESTRATOR</text>
+  <text x="1170" y="242" text-anchor="middle" font-size="11" fill="#475569" font-style="italic">change_impact_skill.py</text>
+
+  <!-- Orchestrator vertical flow arrows -->
+  <line x1="1170" y1="255" x2="1170" y2="745" stroke="#4f46e5" stroke-width="2" stroke-dasharray="4,4" opacity="0.5"/>
+  <!-- Dots at each step -->
+  <circle cx="1170" cy="278" r="6" fill="#4f46e5" opacity="0.8"/>
+  <circle cx="1170" cy="380" r="6" fill="#4f46e5" opacity="0.8"/>
+  <circle cx="1170" cy="482" r="6" fill="#4f46e5" opacity="0.8"/>
+  <circle cx="1170" cy="584" r="6" fill="#4f46e5" opacity="0.8"/>
+  <circle cx="1170" cy="686" r="6" fill="#4f46e5" opacity="0.8"/>
+  <circle cx="1170" cy="738" r="6" fill="#4f46e5" opacity="0.8"/>
+
+  <!-- Orchestrator step labels -->
+  <text x="1185" y="283" font-size="11.5" fill="#818cf8">① Build graph</text>
+  <text x="1185" y="385" font-size="11.5" fill="#818cf8">② Parse ownership</text>
+  <text x="1185" y="487" font-size="11.5" fill="#818cf8">③ Validate contracts</text>
+  <text x="1185" y="589" font-size="11.5" fill="#818cf8">④ Analyse impact</text>
+  <text x="1185" y="691" font-size="11.5" fill="#818cf8">⑤ Score risk</text>
+  <text x="1185" y="743" font-size="11.5" fill="#818cf8">⑥ Generate reports</text>
+
+  <!-- Engine vertical connector line -->
+  <line x1="736" y1="268" x2="736" y2="778" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.35"/>
+
+  <!-- ─────────────── ARROWS: Engine → Outputs ─────────────── -->
+  <!-- Graph Builder → Impact Report -->
+  <path d="M932 228 L1448 228" stroke="#60a5fa" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-blue)" opacity="0.6"/>
+  <!-- Impact Analyzer → Impacted APIs -->
+  <path d="M932 330 L1448 330" stroke="#60a5fa" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-blue)" opacity="0.6"/>
+  <!-- Contract Validator → Regression Areas -->
+  <path d="M932 432 L1448 432" stroke="#60a5fa" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-blue)" opacity="0.6"/>
+  <!-- Risk Scorer → Risk Score -->
+  <path d="M932 534 L1448 534" stroke="#60a5fa" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-blue)" opacity="0.6"/>
+  <!-- Ownership → Required Tests -->
+  <path d="M932 636 L1448 636" stroke="#60a5fa" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-blue)" opacity="0.6"/>
+  <!-- Report Generator → Deploy Checklist -->
+  <path d="M932 738 L1448 738" stroke="#60a5fa" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-blue)" opacity="0.6"/>
+
+  <!-- ─────────────── OUTPUT BOXES ─────────────── -->
+  <!-- O1: Impact Report -->
+  <rect x="1466" y="192" width="400" height="72" rx="10" fill="#052e16" stroke="#34d399" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="1466" y="192" width="8" height="72" rx="4" fill="#10b981"/>
+  <text x="1492" y="222" font-size="14" font-weight="700" fill="#a7f3d0">Impact Report</text>
+  <text x="1492" y="244" font-size="11.5" fill="#94a3b8">impact_report.md  ·  impact_analysis.json</text>
+
+  <!-- O2: Impacted APIs & Modules -->
+  <rect x="1466" y="292" width="400" height="72" rx="10" fill="#052e16" stroke="#34d399" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="1466" y="292" width="8" height="72" rx="4" fill="#10b981"/>
+  <text x="1492" y="322" font-size="14" font-weight="700" fill="#a7f3d0">Impacted APIs &amp; Modules</text>
+  <text x="1492" y="344" font-size="11.5" fill="#94a3b8">Direct + transitive  ·  type + owners</text>
+
+  <!-- O3: Regression Areas -->
+  <rect x="1466" y="392" width="400" height="72" rx="10" fill="#052e16" stroke="#34d399" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="1466" y="392" width="8" height="72" rx="4" fill="#10b981"/>
+  <text x="1492" y="422" font-size="14" font-weight="700" fill="#a7f3d0">Potential Regression Areas</text>
+  <text x="1492" y="444" font-size="11.5" fill="#94a3b8">API / service / DB changes at risk</text>
+
+  <!-- O4: Risk Score -->
+  <rect x="1466" y="492" width="400" height="84" rx="10" fill="#052e16" stroke="#34d399" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="1466" y="492" width="8" height="84" rx="4" fill="#10b981"/>
+  <text x="1492" y="522" font-size="14" font-weight="700" fill="#a7f3d0">Deployment Risk Score</text>
+  <text x="1492" y="542" font-size="11.5" fill="#94a3b8">0–100  ·  LOW / MEDIUM / HIGH / CRITICAL</text>
+  <!-- Mini risk bar -->
+  <rect x="1492" y="553" width="160" height="12" rx="3" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+  <rect x="1492" y="553" width="72" height="12" rx="3" fill="#10b981" opacity="0.8"/>
+  <text x="1660" y="564" font-size="10" fill="#6ee7b7">MEDIUM</text>
+
+  <!-- O5: Required Test Suites -->
+  <rect x="1466" y="598" width="400" height="72" rx="10" fill="#052e16" stroke="#34d399" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="1466" y="598" width="8" height="72" rx="4" fill="#10b981"/>
+  <text x="1492" y="628" font-size="14" font-weight="700" fill="#a7f3d0">Required Test Suites</text>
+  <text x="1492" y="650" font-size="11.5" fill="#94a3b8">unit / integration / e2e  per affected module</text>
+
+  <!-- O6: Consumer Apps + Checklist -->
+  <rect x="1466" y="694" width="400" height="72" rx="10" fill="#052e16" stroke="#34d399" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="1466" y="694" width="8" height="72" rx="4" fill="#10b981"/>
+  <text x="1492" y="724" font-size="14" font-weight="700" fill="#a7f3d0">Consumer Apps + Checklist</text>
+  <text x="1492" y="746" font-size="11.5" fill="#94a3b8">Downstream services  ·  deployment_checklist.md</text>
+
+  <!-- ─────────────── COPILOT AGENT LAYER ─────────────── -->
+  <rect x="32" y="808" width="1856" height="156" rx="14" fill="#1e1b4b" stroke="#6366f1" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="32" y="808" width="1856" height="4" rx="2" fill="url(#headerGrad)"/>
+
+  <text x="200" y="852" font-size="17" font-weight="700" fill="#c7d2fe" letter-spacing="1">GITHUB COPILOT AGENT SKILL LAYER</text>
+  <text x="200" y="878" font-size="13" fill="#64748b">Trigger phrases detected by SKILL.md frontmatter  ·  No API key required  ·  Copilot is the AI engine</text>
+
+  <!-- Trigger pill labels -->
+  <rect x="200" y="893" width="180" height="28" rx="14" fill="#312e81" stroke="#6366f1" stroke-width="1"/>
+  <text x="290" y="912" text-anchor="middle" font-size="12" fill="#a5b4fc">"analyse this PR"</text>
+
+  <rect x="394" y="893" width="200" height="28" rx="14" fill="#312e81" stroke="#6366f1" stroke-width="1"/>
+  <text x="494" y="912" text-anchor="middle" font-size="12" fill="#a5b4fc">"change impact analysis"</text>
+
+  <rect x="608" y="893" width="190" height="28" rx="14" fill="#312e81" stroke="#6366f1" stroke-width="1"/>
+  <text x="703" y="912" text-anchor="middle" font-size="12" fill="#a5b4fc">"what is affected by this"</text>
+
+  <rect x="812" y="893" width="180" height="28" rx="14" fill="#312e81" stroke="#6366f1" stroke-width="1"/>
+  <text x="902" y="912" text-anchor="middle" font-size="12" fill="#a5b4fc">"deployment risk score"</text>
+
+  <rect x="1006" y="893" width="180" height="28" rx="14" fill="#312e81" stroke="#6366f1" stroke-width="1"/>
+  <text x="1096" y="912" text-anchor="middle" font-size="12" fill="#a5b4fc">"what tests are needed"</text>
+
+  <rect x="1200" y="893" width="200" height="28" rx="14" fill="#312e81" stroke="#6366f1" stroke-width="1"/>
+  <text x="1300" y="912" text-anchor="middle" font-size="12" fill="#a5b4fc">"who owns the changed code"</text>
+
+  <rect x="1414" y="893" width="180" height="28" rx="14" fill="#312e81" stroke="#6366f1" stroke-width="1"/>
+  <text x="1504" y="912" text-anchor="middle" font-size="12" fill="#a5b4fc">"safe to deploy"</text>
+
+  <rect x="1608" y="893" width="240" height="28" rx="14" fill="#312e81" stroke="#6366f1" stroke-width="1"/>
+  <text x="1728" y="912" text-anchor="middle" font-size="12" fill="#a5b4fc">"run impact analysis --from-git"</text>
+
+  <!-- Copilot tools row -->
+  <line x1="200" y1="936" x2="1850" y2="936" stroke="#312e81" stroke-width="1.5"/>
+  <text x="200" y="956" font-size="12" fill="#475569">Tools invoked:</text>
+  <rect x="310" y="942" width="130" height="22" rx="6" fill="#1e1b4b" stroke="#475569" stroke-width="1"/>
+  <text x="375" y="957" text-anchor="middle" font-size="11" fill="#94a3b8">run_in_terminal</text>
+  <rect x="452" y="942" width="100" height="22" rx="6" fill="#1e1b4b" stroke="#475569" stroke-width="1"/>
+  <text x="502" y="957" text-anchor="middle" font-size="11" fill="#94a3b8">read_file</text>
+  <rect x="564" y="942" width="110" height="22" rx="6" fill="#1e1b4b" stroke="#475569" stroke-width="1"/>
+  <text x="619" y="957" text-anchor="middle" font-size="11" fill="#94a3b8">create_file</text>
+  <rect x="686" y="942" width="130" height="22" rx="6" fill="#1e1b4b" stroke="#475569" stroke-width="1"/>
+  <text x="751" y="957" text-anchor="middle" font-size="11" fill="#94a3b8">file_search</text>
+  <rect x="828" y="942" width="130" height="22" rx="6" fill="#1e1b4b" stroke="#475569" stroke-width="1"/>
+  <text x="893" y="957" text-anchor="middle" font-size="11" fill="#94a3b8">grep_search</text>
+  <rect x="970" y="942" width="180" height="22" rx="6" fill="#1e1b4b" stroke="#475569" stroke-width="1"/>
+  <text x="1060" y="957" text-anchor="middle" font-size="11" fill="#94a3b8">insert_edit_into_file</text>
+
+  <!-- Footer bar -->
+  <rect x="0" y="1050" width="1920" height="30" fill="#0f172a"/>
+  <text x="960" y="1069" text-anchor="middle" font-size="11" fill="#334155" letter-spacing="1">
+    CHANGE IMPACT ANALYSIS SKILL  v1.0.0  ·  .github/skills/change-impact-analysis  ·  Python 3.8+  ·  No external API required
+  </text>
+
+  <!-- Decorative accent dots -->
+  <circle cx="48" cy="1065" r="4" fill="#6366f1" opacity="0.6"/>
+  <circle cx="64" cy="1065" r="4" fill="#3b82f6" opacity="0.6"/>
+  <circle cx="80" cy="1065" r="4" fill="#10b981" opacity="0.6"/>
+  <circle cx="1840" cy="1065" r="4" fill="#10b981" opacity="0.6"/>
+  <circle cx="1856" cy="1065" r="4" fill="#3b82f6" opacity="0.6"/>
+  <circle cx="1872" cy="1065" r="4" fill="#6366f1" opacity="0.6"/>
+</svg>

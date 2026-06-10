@@ -1,0 +1,7 @@
+# Reverse Engineer Skill — Python Dependencies
+# Zero required dependencies. Engine uses Python stdlib + git only.
+#
+# Optional: enable AI mode (--ai flag uses Claude API for richer analysis)
+# anthropic>=0.40.0
+#
+# Python 3.8+ required. Git must be on PATH.
