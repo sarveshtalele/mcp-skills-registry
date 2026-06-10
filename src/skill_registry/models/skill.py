@@ -26,6 +26,8 @@ class SkillParameter(BaseModel):
     default: Any | None = None
     enum: list[str] | None = None
     examples: list[Any] | None = None
+    # JSON-Schema item type for `array` parameters (defaults to string items).
+    items: ParameterType | None = None
 
     @field_validator("name")
     @classmethod
@@ -104,6 +106,9 @@ class SkillManifest(BaseModel):
         required: list[str] = []
         for param in self.inputs:
             schema: dict[str, Any] = {"type": param.type, "description": param.description}
+            if param.type == "array":
+                # JSON Schema requires `items` for arrays; many clients reject it otherwise.
+                schema["items"] = {"type": param.items or "string"}
             if param.enum:
                 schema["enum"] = param.enum
             if param.default is not None:

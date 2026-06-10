@@ -21,6 +21,19 @@ _MANIFEST = SkillManifest.model_validate(
 )
 
 
+def test_array_input_emits_items_in_mcp_schema():
+    manifest = SkillManifest.model_validate(
+        {
+            "name": "arr",
+            "description": "d",
+            "inputs": [{"name": "files", "type": "array", "required": False}],
+        }
+    )
+    schema = manifest.to_mcp_input_schema()
+    assert schema["properties"]["files"]["type"] == "array"
+    assert schema["properties"]["files"]["items"] == {"type": "string"}
+
+
 def test_fills_default_for_optional():
     out = InputValidator().validate(_MANIFEST, {"text": "hi"})
     assert out == {"text": "hi", "count": 1, "mode": None}
