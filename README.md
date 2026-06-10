@@ -2,151 +2,196 @@
 
 # 🧩 MCP Skill Registry
 
-**A centralized, self-hostable [Model Context Protocol](https://modelcontextprotocol.io) server for discovering, sharing, and executing community skills.**
+**A self-hostable [Model Context Protocol](https://modelcontextprotocol.io) server that turns a folder of "skills" into tools any MCP client can discover and run.**
 
 [![CI](https://github.com/sarveshtalele/mcp-skills-registry/actions/workflows/ci.yml/badge.svg)](https://github.com/sarveshtalele/mcp-skills-registry/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Linter: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Hugging Face Space](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Space-blue)](https://huggingface.co/spaces/sarveshtalele/mcp-skills-registry)
 
-[Quick Start](#-quick-start) · [Architecture](#-architecture) · [Usage](#-usage) · [Authoring Skills](#-authoring-a-skill) · [Deployment](#-deployment) · [API Reference](#-api-reference) · [Contributing](#-contributing)
+[What it does](#-what-it-does) · [How it works](#-how-it-works) · [Connect a client](#-connect-an-mcp-client) · [Authoring skills](#-authoring-a-skill) · [Deployment](#-deployment)
 
 </div>
 
 ---
 
-## 📖 Overview
+## 🎯 What It Does
 
-**MCP Skill Registry** turns a folder of self-contained "skills" into a live MCP
-server. Each skill is a directory with a `SKILL.md` manifest and an executable
-entrypoint; the server auto-discovers them and exposes every one as both an **MCP
-tool** (for clients like Claude Desktop, Claude Code, and VS Code) and a **REST
-endpoint** (for scripts and integrations).
+**MCP Skill Registry** is one server that hosts many *skills* and exposes each one as a callable tool.
 
-Skills run in **isolated subprocesses** with hard timeouts and output caps, so a
-misbehaving skill can never take down the server. New skills can be added three
-ways — drop a folder, upload a ZIP over the API, or open a pull request — with
-**zero changes to the server code**.
+A **skill** is just a folder containing a `SKILL.md` manifest and a small script. Drop the folder in, and the server:
 
-### Why this exists
+1. **Discovers** it automatically (reads the manifest at startup).
+2. **Publishes** it on two interfaces at once:
+   - as an **MCP tool** — usable from Claude Code, Claude Desktop, VS Code, or any MCP client;
+   - as a **REST endpoint** — usable from `curl`, scripts, or any HTTP app.
+3. **Executes** it safely in an isolated subprocess with a hard timeout.
 
-| Problem | This project |
-| --- | --- |
-| Skills scattered across repos, hard to discover | One catalogue, searchable via API and MCP |
-| Every integration re-implements tool plumbing | Author once; callable from any MCP client *and* REST |
-| Running untrusted code is risky | Subprocess isolation, timeouts, output caps, upload validation |
-| Adding capability means editing the server | Drop a folder or POST a ZIP — no server changes |
-| "Works on my machine" deployment | One `Dockerfile`, one-command deploy to Hugging Face |
+You add capabilities by **adding folders or uploading a ZIP — never by editing the server**.
+
+```text
+   ┌─────────────┐     "list/run tools"      ┌────────────────────┐
+   │  MCP client │ ────────────────────────► │                    │
+   │ Claude Code │                           │   MCP Skill        │
+   │ Claude Dsk. │ ◄──────────────────────── │   Registry server  │
+   │  VS Code    │      tool results         │                    │
+   └─────────────┘                           │   discovers every  │
+   ┌─────────────┐     POST /api/v1/...      │   skills/<name>/    │
+   │ REST caller │ ◄────────────────────────►│   folder           │
+   └─────────────┘                           └─────────┬──────────┘
+                                                       │ runs in
+                                                       ▼ subprocess
+                                          skills/text-statistics/
+                                          skills/your-skill/ ...
+```
+
+---
+
+## ⚙️ How It Works
+
+### Architecture
+
+The server is a small, layered FastAPI application. Each layer depends only on the
+layers beneath it, so it stays testable and easy to extend.
+
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│                     FastAPI application  (port 7860)                   │
+│                                                                        │
+│   api/        Routers:  /  ·  /health  ·  /mcp  ·  /api/v1/skills      │  ← transport
+│     │                                                                  │
+│   mcp/        Streamable HTTP transport · JSON-RPC 2.0 · sessions      │  ← MCP protocol
+│     │                                                                  │
+│   services/   SkillRegistry (facade)                                   │  ← application
+│     │           ├─ loader      parse & validate SKILL.md               │     logic
+│     │           ├─ validator   check inputs against the manifest       │
+│     │           ├─ executor    run skill in a sandboxed subprocess     │
+│     │           ├─ search      keyword / optional semantic ranking     │
+│     │           ├─ installer   safe ZIP upload (zip-slip / bomb guard) │
+│     │           └─ audit       append-only event log                   │
+│     │                                                                  │
+│   repositories/  execution history · audit trail                      │  ← persistence
+│     │                                                                  │
+│   db/  models/  config/  container/  main                              │  ← storage, types,
+│         SQLite + schema.sql · pydantic models · settings · wiring      │     wiring
+└───────────────────────────────┬────────────────────────────────────── ┘
+                                 │ discovers & executes
+                                 ▼
+                    skills/   self-contained skill folders
+                      └─ <name>/  SKILL.md · scripts/ · references/ · assets/
+```
+
+### Request lifecycle (running a tool)
+
+```text
+client → tools/call (MCP)  or  POST /api/v1/skills/{name}/execute (REST)
+   │
+   ├─ 1. look up the skill in the in-memory catalogue        (404 if unknown)
+   ├─ 2. validate inputs against SKILL.md                    (types, required, enums)
+   ├─ 3. spawn subprocess: python _runner.py <skill> run     (isolated, timed)
+   │         inputs → JSON via stdin   ·   output → JSON via stdout
+   ├─ 4. enforce timeout + output-size cap                   (kill child on overrun)
+   ├─ 5. record execution + audit entry                      (SQLite)
+   └─ 6. return { status, output | error, duration_ms }
+```
+
+**Why subprocesses?** Process-level isolation, a clean import namespace per call,
+and a reliable hard timeout — a misbehaving skill can never hang or crash the server.
+
+Each skill's entrypoint is a single function:
+
+```python
+def run(inputs: dict) -> dict:
+    ...  # inputs are pre-validated; return a JSON-serializable dict
+```
 
 ---
 
 ## ✨ Features
 
-- **🔌 Dual interface** — every skill is simultaneously an MCP tool and a REST resource.
-- **🧭 Auto-discovery** — skills are plain folders; the server reads `SKILL.md` at startup.
-- **🛡️ Sandboxed execution** — out-of-process runs with per-skill timeouts and output-size limits.
-- **📤 Live uploads** — install a skill from a ZIP via the API; no restart, with zip-slip / zip-bomb protection.
-- **🔍 Discovery** — keyword search out of the box; optional semantic (vector) search.
-- **🌐 Streamable HTTP MCP** — implements the 2025 MCP transport with session management; connect natively, no bridge.
-- **📝 Audit trail** — every execution and catalogue change is recorded in SQLite.
-- **🧱 Clean architecture** — layered package, fully typed, 36 tests, CI on Python 3.10–3.12.
+- **🔌 Dual interface** — every skill is an MCP tool *and* a REST resource.
+- **🧭 Zero-config discovery** — skills are plain folders; no registration code.
+- **🛡️ Sandboxed execution** — subprocess isolation, per-skill timeouts, output caps.
+- **📤 Live uploads** — install a skill from a ZIP via the API; no restart.
+- **🌐 Native MCP** — Streamable HTTP transport with sessions; no bridge needed.
+- **🔍 Search** — keyword out of the box, optional semantic (vector) search.
+- **🧱 Clean codebase** — layered, typed, 37 tests, CI on Python 3.10–3.12.
 
 ---
 
-## 🏗 Architecture
-
-```text
-                         ┌──────────────────────────────────────────────┐
-   MCP client            │            FastAPI application (:7860)        │
- (Claude / VS Code) ─────┤  api/      health · mcp (Streamable HTTP) ·   │
-                         │            rest                              │
-   REST caller     ──────┤  mcp/      JSON-RPC handler · sessions        │
- (curl / scripts)        │  services/ registry · loader · validator ·    │
-                         │            executor · search · installer ·    │
-   ZIP upload      ──────┤            audit                             │
-                         │  repositories/  executions · audit (SQLite)   │
-                         │  db/ models/ config/ container                │
-                         └───────────────┬──────────────────────────────┘
-                                         │ discovers + runs
-                         ┌───────────────▼──────────────────────────────┐
-                         │  skills/   self-contained skill folders        │
-                         │     text-statistics/  SKILL.md + scripts/ ...  │
-                         └──────────────────────────────────────────────┘
-```
-
-**Layering (each layer depends only on those beneath it):**
-
-| Layer | Package | Responsibility |
-| --- | --- | --- |
-| Transport | `api/` | FastAPI routers: health, MCP, REST |
-| Protocol | `mcp/` | JSON-RPC 2.0 + session management |
-| Application | `services/` | Discovery, validation, execution, search, install, audit |
-| Persistence | `repositories/` | Execution history + audit trail |
-| Storage | `db/` | SQLite wrapper + `schema.sql` |
-| Shared | `models/`, `config.py` | Pydantic models, env-driven settings |
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design and rationale.
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Python **3.10+**
-- `git`
-
-### Local install
+## 🚀 Quick Start (local)
 
 ```bash
 git clone https://github.com/sarveshtalele/mcp-skills-registry.git
 cd mcp-skills-registry
 
 python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"          # add ".[dev,search]" for semantic search
+pip install -e ".[dev]"
 
-skill-registry                   # serves on http://localhost:7860
+skill-registry          # serves on http://localhost:7860
 ```
-
-### Verify
 
 ```bash
 curl http://localhost:7860/health
 # {"status":"ok","version":"0.2.0","skills_loaded":1}
-
-curl -X POST http://localhost:7860/api/v1/skills/text-statistics/execute \
-  -H 'Content-Type: application/json' \
-  -d '{"inputs": {"text": "The quick brown fox jumps over the lazy dog."}}'
 ```
 
-### Run with Docker
-
-```bash
-docker build -t mcp-skill-registry .
-docker run -p 7860:7860 -v "$(pwd)/data:/data" mcp-skill-registry
-```
+A public instance runs at **https://sarveshtalele-mcp-skills-registry.hf.space**.
 
 ---
 
-## 🔧 Usage
+## 🔗 Connect an MCP Client
 
-### Connect an MCP client
+The server speaks the **Streamable HTTP** MCP transport at `/mcp`, so modern clients
+connect directly. Use your local URL (`http://localhost:7860/mcp`) or the hosted one
+(`https://sarveshtalele-mcp-skills-registry.hf.space/mcp`).
 
-The server implements the **Streamable HTTP** transport at `/mcp`, so modern
-clients connect directly — no `mcp-remote` bridge required.
-
-**Claude Code**
+### Claude Code
 
 ```bash
 claude mcp add --transport http skill-registry \
   https://sarveshtalele-mcp-skills-registry.hf.space/mcp
 ```
 
-**VS Code** — `.vscode/mcp.json`
+Verify inside a session:
 
-```jsonc
+```text
+/mcp          # lists connected servers and their tools
+```
+
+Remove it again with `claude mcp remove skill-registry`.
+
+### Claude Desktop
+
+1. Open **Settings → Developer → Edit Config** (opens `claude_desktop_config.json`).
+2. Add the server:
+
+   ```json
+   {
+     "mcpServers": {
+       "skill-registry": {
+         "command": "npx",
+         "args": [
+           "-y", "mcp-remote",
+           "https://sarveshtalele-mcp-skills-registry.hf.space/mcp"
+         ]
+       }
+     }
+   }
+   ```
+
+   > Claude Desktop launches MCP servers as local processes, so it reaches a remote
+   > HTTP server through the `mcp-remote` bridge (`npx` fetches it automatically;
+   > requires Node.js). Alternatively, **Settings → Connectors → Add custom connector**
+   > accepts the `/mcp` URL directly on supported plans.
+
+3. Restart Claude Desktop. The skills appear as tools (look for the 🔌 icon).
+
+### VS Code (GitHub Copilot / Continue)
+
+Create `.vscode/mcp.json`:
+
+```json
 {
   "servers": {
     "skill-registry": {
@@ -157,59 +202,86 @@ claude mcp add --transport http skill-registry \
 }
 ```
 
-**Claude Desktop** — Settings → Connectors → add a custom remote MCP server with
-the `/mcp` URL. (Older stdio-only clients can bridge with
-`npx -y mcp-remote <url>`.)
+### Any MCP client (raw protocol)
 
-Once connected, the client lists every skill as a tool and calls them automatically.
-
-### Call over REST
+The endpoint is JSON-RPC 2.0 over HTTP POST.
 
 ```bash
-# List / search
-curl "http://localhost:7860/api/v1/skills?q=readability"
+# 1. initialize — returns an Mcp-Session-Id header
+curl -i -X POST http://localhost:7860/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
 
-# Inspect a skill
-curl http://localhost:7860/api/v1/skills/text-statistics
+# 2. list tools
+curl -X POST http://localhost:7860/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
 
-# Execute
+# 3. call a tool
+curl -X POST http://localhost:7860/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call",
+       "params":{"name":"text-statistics","arguments":{"text":"Hello world."}}}'
+```
+
+| Method | Behaviour |
+| --- | --- |
+| `POST /mcp` | `initialize`, `tools/list`, `tools/call`, `ping` (single or batch). |
+| `GET /mcp` | `405` — no server-initiated stream (spec-permitted). |
+| `DELETE /mcp` | Terminate the session in the `Mcp-Session-Id` header. |
+
+---
+
+## 🧰 REST API
+
+Prefer plain HTTP? Every skill is reachable without MCP.
+
+| Method & Path | Description |
+| --- | --- |
+| `GET /` | Service metadata + entry points. |
+| `GET /health` | Liveness probe + skill count. |
+| `GET /api/v1/skills` | List / search skills (`q`, `category`, `limit`, `offset`). |
+| `GET /api/v1/skills/{name}` | Full skill manifest. |
+| `POST /api/v1/skills/{name}/execute` | Run a skill — body `{"inputs": {...}}`. |
+| `POST /api/v1/skills/upload` | Install a skill from a ZIP (`?overwrite=true`). |
+| `POST /api/v1/admin/reload` | Re-scan the skills directory. |
+
+Interactive Swagger UI is served at `/docs`.
+
+```bash
 curl -X POST http://localhost:7860/api/v1/skills/text-statistics/execute \
   -H 'Content-Type: application/json' \
-  -d '{"inputs": {"text": "Hello world. A second sentence."}}'
+  -d '{"inputs": {"text": "The quick brown fox jumps over the lazy dog."}}'
 ```
 
 ---
 
 ## 🧩 Authoring a Skill
 
-A skill is a single self-contained folder. This layout follows the convention
-used by the
-[change-impact-analysis-skill](https://github.com/sarveshtalele/change-impact-analysis-skill)
-and [reverse-engineering-skill](https://github.com/sarveshtalele/reverse-engineering-skill-github-copilot):
+A skill is one self-contained folder:
 
 ```text
 skill-name/
-├── SKILL.md          # Required: YAML frontmatter (manifest) + agent instructions
-├── scripts/          # Optional: executable code — entrypoint exposes run(inputs) -> dict
-├── references/       # Optional: supporting documentation
+├── SKILL.md          # Required: YAML frontmatter (manifest) + instructions
+├── scripts/          # Optional: code — entrypoint exposes run(inputs) -> dict
+├── references/       # Optional: supporting docs
 ├── assets/           # Optional: templates, resources, extra requirements.txt
-└── ...               # Any additional files or directories
+└── ...               # Any additional files
 ```
 
-### 1. Scaffold
+**1. Scaffold**
 
 ```bash
 python scripts/new_skill.py my-skill
 ```
 
-### 2. Define the manifest (`SKILL.md`)
+**2. `SKILL.md`**
 
 ```yaml
 ---
-name: my-skill                 # lowercase slug
-version: 1.0.0                 # semver
-description: >
-  What it does and the phrases that should trigger it.
+name: my-skill
+version: 1.0.0
+description: What it does and the phrases that should trigger it.
 execution:
   type: python-script
   entrypoint: scripts/main.py:run
@@ -226,24 +298,21 @@ outputs:
 ---
 
 # My Skill
-Agent-facing instructions go here.
+Instructions for the agent.
 ```
 
-### 3. Implement the entrypoint (`scripts/main.py`)
+**3. `scripts/main.py`**
 
 ```python
 def run(inputs: dict) -> dict:
-    """Inputs are pre-validated against SKILL.md. Return a JSON-serializable dict."""
     return {"result": inputs["text"].upper()}
 ```
 
-### 4. Register it
+**4. Register**
 
 ```bash
-# Local: re-scan the catalogue
-curl -X POST http://localhost:7860/api/v1/admin/reload
-
-# Or upload a packaged skill (no restart, no Git)
+curl -X POST http://localhost:7860/api/v1/admin/reload      # local rescan
+# or upload a packaged skill (no restart):
 zip -r my-skill.zip my-skill/
 curl -X POST http://localhost:7860/api/v1/skills/upload -F 'file=@my-skill.zip'
 ```
@@ -252,60 +321,33 @@ Full guide: **[docs/ADDING_A_SKILL.md](docs/ADDING_A_SKILL.md)**.
 
 ---
 
-## 📡 API Reference
+## 🌍 Deployment
 
-### MCP — `/mcp` (Streamable HTTP, JSON-RPC 2.0)
+Runs anywhere Docker runs, and ships to a **Hugging Face Docker Space** out of the box.
 
-| Method | Description |
-| --- | --- |
-| `POST /mcp` | `initialize`, `tools/list`, `tools/call`, `ping` (single or batch). `initialize` returns an `Mcp-Session-Id` header. |
-| `GET /mcp` | Returns `405` (no server-initiated stream; spec-permitted). |
-| `DELETE /mcp` | Terminate the session named by `Mcp-Session-Id`. |
+```bash
+docker build -t mcp-skill-registry .
+docker run -p 7860:7860 -v "$(pwd)/data:/data" mcp-skill-registry
+```
 
-### REST — `/api/v1`
-
-| Method & Path | Description |
-| --- | --- |
-| `GET /api/v1/skills` | List or search skills (`q`, `category`, `limit`, `offset`). |
-| `GET /api/v1/skills/{name}` | Full skill manifest. |
-| `POST /api/v1/skills/{name}/execute` | Execute a skill. Body: `{"inputs": {...}}`. |
-| `POST /api/v1/skills/upload` | Install a skill from a ZIP (`?overwrite=true` to replace). |
-| `POST /api/v1/admin/reload` | Re-scan the skills directory. |
-| `GET /health` | Liveness probe + skill count. |
-
-Interactive docs (Swagger UI) are served at `/docs` when the server is running.
+Pushing to `main` on GitHub auto-mirrors to the Space, which rebuilds from the
+`Dockerfile`. Full instructions (tokens, persistence): **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
 ---
 
-## ⚙️ Configuration
+## 🔧 Configuration
 
-All settings are environment variables prefixed `SKILLREG_` (see [.env.example](.env.example)).
+Environment variables, prefixed `SKILLREG_` (see [.env.example](.env.example)):
 
 | Variable | Default | Description |
 | --- | --- | --- |
 | `SKILLREG_PORT` | `7860` | HTTP port. |
 | `SKILLREG_SKILLS_DIR` | `skills` | Skill catalogue directory. |
-| `SKILLREG_DB_PATH` | `data/registry.db` | SQLite database path. |
-| `SKILLREG_DEFAULT_TIMEOUT_SECONDS` | `30` | Default per-skill execution timeout. |
-| `SKILLREG_MAX_TIMEOUT_SECONDS` | `120` | Upper bound on any skill's timeout. |
+| `SKILLREG_DB_PATH` | `data/registry.db` | SQLite path. |
+| `SKILLREG_DEFAULT_TIMEOUT_SECONDS` | `30` | Default execution timeout. |
+| `SKILLREG_MAX_TIMEOUT_SECONDS` | `120` | Upper bound on any timeout. |
 | `SKILLREG_ENABLE_UPLOADS` | `true` | Allow the upload endpoint. |
-| `SKILLREG_MAX_UPLOAD_BYTES` | `5000000` | Max upload archive size. |
-| `SKILLREG_ENABLE_SEMANTIC_SEARCH` | `false` | Use vector search (needs the `search` extra). |
-
----
-
-## 🌍 Deployment
-
-This repository deploys to a **Hugging Face Docker Space**. Pushing to GitHub
-mirrors `main` to the Space, which rebuilds from the `Dockerfile`.
-
-```text
-GitHub (source)  ──push main──►  HF Space (docker build)  ──►  live MCP server
-```
-
-Live instance: **https://sarveshtalele-mcp-skills-registry.hf.space**
-
-Step-by-step (tokens, secrets, persistence): **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
+| `SKILLREG_ENABLE_SEMANTIC_SEARCH` | `false` | Vector search (needs the `search` extra). |
 
 ---
 
@@ -313,21 +355,13 @@ Step-by-step (tokens, secrets, persistence): **[docs/DEPLOYMENT.md](docs/DEPLOYM
 
 ```bash
 make install   # editable install with dev extras
-make test      # run the test suite (pytest)
+make test      # pytest (37 tests)
 make lint      # ruff + black --check
 make format    # ruff --fix + black
 make run       # local dev server
 ```
 
-| Tool | Purpose |
-| --- | --- |
-| [pytest](https://pytest.org) | Test suite (36 tests). |
-| [ruff](https://github.com/astral-sh/ruff) | Linting + import sorting. |
-| [black](https://github.com/psf/black) | Formatting. |
-| [mypy](https://mypy-lang.org) | Static typing. |
-
-Continuous integration runs all checks on Python 3.10, 3.11, and 3.12 via
-[GitHub Actions](.github/workflows/ci.yml).
+CI runs lint + tests on Python 3.10, 3.11, and 3.12.
 
 ---
 
@@ -335,67 +369,20 @@ Continuous integration runs all checks on Python 3.10, 3.11, and 3.12 via
 
 ```text
 mcp-skills-registry/
-├── src/skill_registry/        # the server (layered package)
-│   ├── api/                    # FastAPI routers (health, mcp, rest)
-│   ├── mcp/                    # JSON-RPC protocol + sessions
-│   ├── services/               # registry, loader, validator, executor, search, installer, audit
-│   ├── repositories/           # SQLite persistence
-│   ├── db/                     # database wrapper + schema.sql
-│   ├── models/                 # pydantic domain models
-│   ├── config.py · container.py · main.py
-├── skills/                     # self-contained skills (auto-discovered)
-│   ├── _template/              # scaffold skeleton
-│   └── text-statistics/        # worked example
-├── scripts/                    # new_skill.py scaffolder + HF entrypoint
-├── tests/                      # pytest suite
-├── docs/                       # architecture, deployment, authoring guides
-├── Dockerfile · pyproject.toml · Makefile
-└── .github/workflows/          # CI + Hugging Face deploy
+├── src/skill_registry/     # the server (layered package)
+│   ├── api/  mcp/  services/  repositories/  db/  models/
+│   └── config.py · container.py · main.py
+├── skills/                 # self-contained skills (auto-discovered)
+│   ├── _template/          # scaffold skeleton
+│   └── text-statistics/    # worked example
+├── scripts/                # new_skill.py · HF entrypoint
+├── tests/                  # pytest suite
+├── docs/                   # architecture · deployment · authoring
+└── Dockerfile · pyproject.toml · Makefile · .github/workflows/
 ```
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome. Please read **[CONTRIBUTING.md](CONTRIBUTING.md)**, then:
-
-1. Fork and create a feature branch.
-2. Run `make format && make lint && make test`.
-3. Open a pull request.
-
-New skills should add a single `skills/<name>/` folder with a valid `SKILL.md`,
-an entrypoint, and at least one test.
-
----
-
-## 🔐 Security
-
-- Skills execute in **isolated subprocesses** with enforced timeouts and output caps.
-- Uploads are validated before being written and are protected against path
-  traversal (zip-slip) and decompression bombs.
-- Uploads can be disabled entirely with `SKILLREG_ENABLE_UPLOADS=false`.
-
-Found a vulnerability? Please open a private security advisory rather than a
-public issue.
-
----
-
-## 🗺 Roadmap
-
-- [ ] Per-publisher authentication and API keys
-- [ ] Skill versioning with deprecation windows
-- [ ] Resource limits (CPU/memory cgroups) for the execution sandbox
-- [ ] Web UI for browsing and trying skills
-- [ ] Skill ratings and usage analytics
 
 ---
 
 ## 📄 License
 
-Distributed under the **MIT License**. See [LICENSE](LICENSE) for details.
-
----
-
-<div align="center">
-<sub>Built with FastAPI · Pydantic · the Model Context Protocol — deployed on Hugging Face Spaces.</sub>
-</div>
+MIT — see [LICENSE](LICENSE).
