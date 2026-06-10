@@ -13,6 +13,7 @@ it can run in a clean subprocess with only the skill's own directory importable.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
 import json
 import sys
@@ -47,16 +48,20 @@ def main() -> int:
         print(json.dumps({"error": f"invalid input JSON: {exc}"}))
         return 1
 
+    # Reserve real stdout for the JSON envelope; send any skill print()/import
+    # chatter to stderr so it cannot corrupt the result the parent parses.
+    real_stdout = sys.stdout
     try:
-        entry = _load_callable(script_path, callable_name)
-        result = entry(inputs)
-        if not isinstance(result, dict):
-            raise TypeError(f"skill must return a dict, got {type(result).__name__}")
-        print(json.dumps({"output": result}))
+        with contextlib.redirect_stdout(sys.stderr):
+            entry = _load_callable(script_path, callable_name)
+            result = entry(inputs)
+            if not isinstance(result, dict):
+                raise TypeError(f"skill must return a dict, got {type(result).__name__}")
+        print(json.dumps({"output": result}), file=real_stdout)
         return 0
     except Exception as exc:  # noqa: BLE001 - report any skill failure to the parent
         detail = "".join(traceback.format_exception_only(type(exc), exc)).strip()
-        print(json.dumps({"error": detail}))
+        print(json.dumps({"error": detail}), file=real_stdout)
         return 1
 
 
