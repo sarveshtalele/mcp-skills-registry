@@ -11,6 +11,12 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
+# git is required by skills that clone repositories (e.g. reverse-engineering)
+# and by git-diff-based analysis (change-impact-analysis).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install the package first (better layer caching).
 COPY pyproject.toml requirements.txt ./
 COPY src/ ./src/
