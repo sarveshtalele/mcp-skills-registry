@@ -16,6 +16,7 @@ from __future__ import annotations
 import contextlib
 import importlib.util
 import json
+import os
 import sys
 import traceback
 from pathlib import Path
@@ -48,21 +49,33 @@ def main() -> int:
         print(json.dumps({"error": f"invalid input JSON: {exc}"}))
         return 1
 
-    # Reserve real stdout for the JSON envelope; send any skill print()/import
-    # chatter to stderr so it cannot corrupt the result the parent parses.
-    real_stdout = sys.stdout
+    # The JSON envelope must be the ONLY thing on stdout. Skills (and their
+    # subprocesses, e.g. `git clone`) may write to stdout — at the Python level
+    # AND directly to file descriptor 1 — which would corrupt the envelope.
+    # Redirect fd 1 to fd 2 (stderr) for the duration of execution, then restore
+    # it and emit the envelope. This captures subprocess output too.
+    saved_stdout_fd = os.dup(1)
     try:
+        sys.stdout.flush()
+        os.dup2(2, 1)  # point fd 1 at stderr
         with contextlib.redirect_stdout(sys.stderr):
             entry = _load_callable(script_path, callable_name)
             result = entry(inputs)
-            if not isinstance(result, dict):
-                raise TypeError(f"skill must return a dict, got {type(result).__name__}")
-        print(json.dumps({"output": result}), file=real_stdout)
-        return 0
+        if not isinstance(result, dict):
+            raise TypeError(f"skill must return a dict, got {type(result).__name__}")
+        envelope = {"output": result}
+        rc = 0
     except Exception as exc:  # noqa: BLE001 - report any skill failure to the parent
         detail = "".join(traceback.format_exception_only(type(exc), exc)).strip()
-        print(json.dumps({"error": detail}), file=real_stdout)
-        return 1
+        envelope = {"error": detail}
+        rc = 1
+    finally:
+        sys.stderr.flush()
+        os.dup2(saved_stdout_fd, 1)  # restore real stdout
+        os.close(saved_stdout_fd)
+
+    os.write(1, (json.dumps(envelope) + "\n").encode("utf-8"))
+    return rc
 
 
 if __name__ == "__main__":
