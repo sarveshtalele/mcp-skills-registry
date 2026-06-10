@@ -11,6 +11,8 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from skill_registry import __version__
+
 
 class Settings(BaseSettings):
     """Typed application settings."""
@@ -47,7 +49,7 @@ class Settings(BaseSettings):
 
     # --- Metadata ---
     title: str = "MCP Skill Registry"
-    version: str = "0.2.0"
+    version: str = __version__
 
     @property
     def resolved_skills_dir(self) -> Path:

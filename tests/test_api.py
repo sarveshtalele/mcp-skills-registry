@@ -3,6 +3,12 @@
 from __future__ import annotations
 
 
+def test_index(client):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert resp.json()["endpoints"]["mcp"] == "/mcp"
+
+
 def test_health(client):
     resp = client.get("/health")
     assert resp.status_code == 200

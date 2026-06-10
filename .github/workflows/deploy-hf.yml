@@ -20,6 +20,25 @@ jobs:
           fetch-depth: 0
           lfs: true
 
+      - name: Inject Hugging Face Space metadata header
+        # The GitHub README has no YAML frontmatter (keeps it clean on GitHub).
+        # Hugging Face Spaces requires it, so prepend it only on the deploy copy.
+        run: |
+          {
+            printf -- '---\n'
+            printf 'title: MCP Skill Registry\n'
+            printf 'emoji: 🧩\n'
+            printf 'colorFrom: indigo\n'
+            printf 'colorTo: purple\n'
+            printf 'sdk: docker\n'
+            printf 'app_port: 7860\n'
+            printf 'pinned: false\n'
+            printf 'license: mit\n'
+            printf -- '---\n\n'
+            cat README.md
+          } > README.hf.md
+          mv README.hf.md README.md
+
       - name: Push to Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -28,6 +47,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "ci: inject HF Space header" --no-verify
           git remote add space \
             "https://${HF_USERNAME}:${HF_TOKEN}@huggingface.co/spaces/${HF_USERNAME}/${HF_SPACE}"
           git push --force space HEAD:main

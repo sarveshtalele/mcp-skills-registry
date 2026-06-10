@@ -1,17 +1,3 @@
----
-title: MCP Skill Registry
-emoji: 🧩
-colorFrom: indigo
-colorTo: purple
-sdk: docker
-app_port: 7860
-pinned: false
-license: mit
----
-
-<!-- The YAML block above is Hugging Face Spaces metadata. It configures the
-     Docker runtime when this repo is deployed as a Space. Leave it in place. -->
-
 <div align="center">
 
 # 🧩 MCP Skill Registry

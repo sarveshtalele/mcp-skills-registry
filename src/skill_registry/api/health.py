@@ -11,6 +11,22 @@ from skill_registry.services import SkillRegistry
 router = APIRouter(tags=["meta"])
 
 
+@router.get("/")
+async def index(registry: SkillRegistry = Depends(get_registry)) -> dict:
+    """Landing endpoint: service metadata and entry points."""
+    return {
+        "name": "MCP Skill Registry",
+        "version": __version__,
+        "skills_loaded": len(registry.list_skills()),
+        "endpoints": {
+            "mcp": "/mcp",
+            "skills": "/api/v1/skills",
+            "docs": "/docs",
+            "health": "/health",
+        },
+    }
+
+
 @router.get("/health")
 async def health(registry: SkillRegistry = Depends(get_registry)) -> dict:
     """Liveness probe with a skill count."""
