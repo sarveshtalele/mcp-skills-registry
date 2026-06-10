@@ -1,11 +1,13 @@
 # Hugging Face Spaces (SDK: docker) image for the MCP Skill Registry.
 FROM python:3.11-slim
 
+# Persist runtime data and uploaded skills on the Space's /data mount.
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     SKILLREG_PORT=7860 \
-    SKILLREG_DB_PATH=/data/registry.db
+    SKILLREG_DB_PATH=/data/registry.db \
+    SKILLREG_SKILLS_DIR=/data/skills
 
 WORKDIR /app
 
@@ -20,8 +22,9 @@ COPY skills/ ./skills/
 COPY scripts/ ./scripts/
 
 # HF Spaces mounts persistent storage at /data; create it for local runs too.
-RUN mkdir -p /data
+RUN mkdir -p /data/skills && chmod +x scripts/hf_entrypoint.sh
 
 EXPOSE 7860
 
-CMD ["uvicorn", "skill_registry.main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Entrypoint seeds /data/skills from the baked-in catalogue, then serves.
+CMD ["scripts/hf_entrypoint.sh"]
