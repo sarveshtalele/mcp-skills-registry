@@ -1,0 +1,9 @@
+# Hugging Face Spaces installs from this file.
+# Core runtime only. Pulls the package's pinned ranges via pyproject extras.
+# For semantic search, add the `search` extra: pip install ".[search]"
+fastapi>=0.110,<1.0
+uvicorn[standard]>=0.29,<1.0
+pydantic>=2.6,<3.0
+pydantic-settings>=2.2,<3.0
+PyYAML>=6.0,<7.0
+python-multipart>=0.0.9

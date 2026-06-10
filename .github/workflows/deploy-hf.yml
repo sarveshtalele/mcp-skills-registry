@@ -1,0 +1,33 @@
+name: Deploy to Hugging Face Space
+
+# Mirrors `main` to a Hugging Face Space, which rebuilds from the Dockerfile.
+# Required repo configuration:
+#   - Secret  HF_TOKEN     : a Hugging Face write token (Settings → Access Tokens)
+#   - Variable HF_USERNAME : your HF username/org
+#   - Variable HF_SPACE    : the Space name (e.g. mcp-skill-registry)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: ${{ vars.HF_USERNAME }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add space \
+            "https://${HF_USERNAME}:${HF_TOKEN}@huggingface.co/spaces/${HF_USERNAME}/${HF_SPACE}"
+          git push --force space HEAD:main

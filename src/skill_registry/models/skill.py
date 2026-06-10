@@ -1,0 +1,139 @@
+"""Models describing a skill and its public manifest (``SKILL.md`` frontmatter)."""
+
+from __future__ import annotations
+
+import re
+from typing import Any, Literal
+
+from pydantic import BaseModel, Field, field_validator
+
+from skill_registry.models.enums import ExecutionType, SkillStatus
+
+# JSON-Schema primitive types we accept for skill parameters.
+ParameterType = Literal["string", "integer", "number", "boolean", "array", "object"]
+
+_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+_SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
+
+
+class SkillParameter(BaseModel):
+    """A single input or output parameter of a skill."""
+
+    name: str
+    type: ParameterType = "string"
+    description: str = ""
+    required: bool = True
+    default: Any | None = None
+    enum: list[str] | None = None
+    examples: list[Any] | None = None
+
+    @field_validator("name")
+    @classmethod
+    def _valid_name(cls, value: str) -> str:
+        if not value.isidentifier():
+            raise ValueError(f"parameter name '{value}' must be a valid identifier")
+        return value
+
+
+class ExecutionSpec(BaseModel):
+    """Describes how the registry should execute the skill."""
+
+    type: ExecutionType = ExecutionType.PYTHON_SCRIPT
+    # "scripts/main.py:run" — relative module path and callable name.
+    entrypoint: str = "scripts/main.py:run"
+    timeout_seconds: int = Field(default=30, ge=1, le=600)
+
+    @field_validator("entrypoint")
+    @classmethod
+    def _valid_entrypoint(cls, value: str) -> str:
+        if ":" not in value:
+            raise ValueError("entrypoint must be in the form 'path/to/file.py:callable'")
+        path, _, callable_name = value.partition(":")
+        if not path.endswith(".py") or not callable_name.isidentifier():
+            raise ValueError("entrypoint must reference a .py file and a valid callable name")
+        return value
+
+    @property
+    def script_path(self) -> str:
+        """Relative path to the entrypoint script."""
+        return self.entrypoint.split(":", 1)[0]
+
+    @property
+    def callable_name(self) -> str:
+        """Name of the entrypoint callable."""
+        return self.entrypoint.split(":", 1)[1]
+
+
+class SkillManifest(BaseModel):
+    """Validated representation of a skill's ``SKILL.md`` frontmatter."""
+
+    name: str
+    version: str = "0.1.0"
+    description: str
+    author: str = "unknown"
+    license: str = "MIT"
+    category: str = "general"
+    tags: list[str] = Field(default_factory=list)
+
+    execution: ExecutionSpec = Field(default_factory=ExecutionSpec)
+    inputs: list[SkillParameter] = Field(default_factory=list)
+    outputs: list[SkillParameter] = Field(default_factory=list)
+
+    status: SkillStatus = SkillStatus.ACTIVE
+    requires_approval: bool = False
+    docs_url: str | None = None
+    repository: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def _valid_name(cls, value: str) -> str:
+        if not _SLUG_RE.match(value):
+            raise ValueError(f"skill name '{value}' must be a lowercase slug (a-z, 0-9, hyphen)")
+        return value
+
+    @field_validator("version")
+    @classmethod
+    def _valid_version(cls, value: str) -> str:
+        if not _SEMVER_RE.match(value):
+            raise ValueError(f"version '{value}' must be semantic (MAJOR.MINOR.PATCH)")
+        return value
+
+    def to_mcp_input_schema(self) -> dict[str, Any]:
+        """Render the inputs as a JSON Schema object for the MCP tool contract."""
+        properties: dict[str, Any] = {}
+        required: list[str] = []
+        for param in self.inputs:
+            schema: dict[str, Any] = {"type": param.type, "description": param.description}
+            if param.enum:
+                schema["enum"] = param.enum
+            if param.default is not None:
+                schema["default"] = param.default
+            properties[param.name] = schema
+            if param.required:
+                required.append(param.name)
+        return {"type": "object", "properties": properties, "required": required}
+
+
+class SkillSummary(BaseModel):
+    """Lightweight projection used in search and listing responses."""
+
+    name: str
+    version: str
+    description: str
+    category: str
+    tags: list[str]
+    status: SkillStatus
+    relevance: float | None = None
+
+    @classmethod
+    def from_manifest(cls, manifest: SkillManifest, relevance: float | None = None) -> SkillSummary:
+        """Build a summary from a full manifest."""
+        return cls(
+            name=manifest.name,
+            version=manifest.version,
+            description=manifest.description,
+            category=manifest.category,
+            tags=manifest.tags,
+            status=manifest.status,
+            relevance=relevance,
+        )

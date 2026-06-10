@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-skill-registry"
+version = "0.2.0"
+description = "A centralized, Hugging Face-hosted MCP server for discovering and executing community skills."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Sarvesh Talele", email = "talelesarvesh@gmail.com" }]
+keywords = ["mcp", "skills", "registry", "llm", "agents", "huggingface"]
+
+dependencies = [
+    "fastapi>=0.110,<1.0",
+    "uvicorn[standard]>=0.29,<1.0",
+    "pydantic>=2.6,<3.0",
+    "pydantic-settings>=2.2,<3.0",
+    "PyYAML>=6.0,<7.0",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+# Heavy semantic-search stack. Optional so the core server stays lightweight.
+search = [
+    "sentence-transformers>=2.7,<4.0",
+    "numpy>=1.26,<3.0",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "ruff>=0.4",
+    "black>=24.0",
+    "mypy>=1.10",
+]
+
+[project.urls]
+Homepage = "https://github.com/sarveshtalele/mcp-skills-registry"
+Issues = "https://github.com/sarveshtalele/mcp-skills-registry/issues"
+
+[project.scripts]
+skill-registry = "skill_registry.main:run_cli"
+new-skill = "scripts.new_skill:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+# pycodestyle (E/W), pyflakes (F), isort (I), pyupgrade (UP), bugbear (B), naming (N)
+select = ["E", "W", "F", "I", "UP", "B", "N", "C4"]
+ignore = ["E501", "B008"]  # E501: formatter handles length; B008: FastAPI Depends idiom
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_ignores = true
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src"]

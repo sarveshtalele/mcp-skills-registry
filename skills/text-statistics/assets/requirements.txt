@@ -1,0 +1,2 @@
+# Extra pip dependencies for this skill (installed into the server image).
+# text-statistics uses only the Python standard library — none required.
