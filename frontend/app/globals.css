@@ -52,7 +52,8 @@ a { color: var(--amber-d); text-decoration: none; }
 .stat .l { color: var(--muted); font-size: 13px; }
 
 /* Segmented control */
-.seg { display: inline-flex; background: #f0f0f3; border-radius: 980px; padding: 4px; margin: 8px auto; }
+.seg { display: inline-flex; width: auto; background: #f0f0f3; border-radius: 980px; padding: 4px; margin: 8px auto; }
+.seg.left { margin: 8px 0 0; }
 .seg button {
   border: none; background: transparent; color: var(--muted); font-weight: 600;
   font-size: 14px; padding: 8px 18px; border-radius: 980px; cursor: pointer;
@@ -91,12 +92,15 @@ a { color: var(--amber-d); text-decoration: none; }
   padding: 26px; box-shadow: var(--shadow); margin-top: 16px;
 }
 .drop {
-  border: 2px dashed #e2d9c7; border-radius: 14px; padding: 28px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; min-height: 160px; box-sizing: border-box;
+  border: 2px dashed #e2d9c7; border-radius: 14px; padding: 32px; text-align: center;
   color: var(--muted); cursor: pointer; transition: border-color .15s, background .15s;
 }
 .drop:hover { border-color: var(--amber); background: #fffaf2; }
+.drop strong { color: var(--ink); font-size: 16px; }
 .drop input { display: none; }
-.row { display: flex; gap: 12px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+.row { display: flex; gap: 12px; align-items: center; margin-top: 18px; flex-wrap: wrap; }
 .btn {
   border: none; border-radius: 980px; padding: 11px 22px; font-size: 15px; font-weight: 600; cursor: pointer;
 }

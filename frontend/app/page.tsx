@@ -187,20 +187,21 @@ function UploadPanel({ onDone }: { onDone: () => void }) {
   return (
     <div className="section">
       <h2>Upload</h2>
-      <div className="seg" style={{ display: "flex" }}>
+      <div className="seg left">
         <button className={kind === "skill" ? "active" : ""} onClick={() => setKind("skill")}>Skill / Spec-Kit skill</button>
         <button className={kind === "agent" ? "active" : ""} onClick={() => setKind("agent")}>Agent</button>
       </div>
       <div className="panel">
         <label className="drop">
           <input type="file" accept=".zip" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setMsg(null); setResult(null); }} />
-          {file ? <strong>{file.name}</strong> : (
+          {file ? (
+            <strong>{file.name}</strong>
+          ) : (
             <>
               <strong>Click to choose a {kind} .zip</strong>
-              <div className="muted" style={{ marginTop: 6 }}>
-                Must contain {kind === "skill" ? "SKILL.md" : "AGENT.md"} at the root or one folder deep.
-                A wrapper folder is detected automatically.
-              </div>
+              <span className="muted">
+                Must contain {kind === "skill" ? "SKILL.md" : "AGENT.md"} at the root or one folder deep — a wrapper folder is detected automatically.
+              </span>
             </>
           )}
         </label>
