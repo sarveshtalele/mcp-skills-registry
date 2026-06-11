@@ -21,6 +21,7 @@ def settings(tmp_path: Path) -> Settings:
     """Settings pointing at the repo's real skills dir with an isolated DB."""
     return Settings(
         skills_dir=_REPO_ROOT / "skills",
+        agents_dir=_REPO_ROOT / "agents",
         db_path=tmp_path / "test.db",
         enable_ui=False,
     )
@@ -52,8 +53,15 @@ def writable_client(tmp_path: Path) -> Iterator:
     from skill_registry.main import create_app
 
     skills_dir = tmp_path / "skills"
+    agents_dir = tmp_path / "agents"
     skills_dir.mkdir()
-    settings = Settings(skills_dir=skills_dir, db_path=tmp_path / "test.db", enable_ui=False)
+    agents_dir.mkdir()
+    settings = Settings(
+        skills_dir=skills_dir,
+        agents_dir=agents_dir,
+        db_path=tmp_path / "test.db",
+        enable_ui=False,
+    )
     app = create_app(settings)
     with TestClient(app) as test_client:
         yield test_client

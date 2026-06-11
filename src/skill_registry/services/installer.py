@@ -35,6 +35,68 @@ class SkillInstaller:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
         self._skills_dir = settings.resolved_skills_dir
+        self._agents_dir = settings.resolved_agents_dir
+
+    # --- Agents ----------------------------------------------------------
+
+    def validate_agent_zip(self, data: bytes):
+        """Validate an uploaded agent archive (AGENT.md). Returns the manifest."""
+        from skill_registry.models import AgentManifest
+
+        if len(data) > self._settings.max_upload_bytes:
+            raise InstallError("upload exceeds the maximum allowed size")
+        try:
+            archive = zipfile.ZipFile(io.BytesIO(data))
+        except zipfile.BadZipFile as exc:
+            raise InstallError(f"not a valid ZIP archive: {exc}") from exc
+        with archive:
+            self._check_zip_bomb(archive)
+            root = self._find_root(archive, "AGENT.md")
+            raw = archive.read(f"{root}AGENT.md").decode("utf-8")
+            data_fm, _ = parse_frontmatter(raw)
+            try:
+                manifest = AgentManifest.model_validate(data_fm)
+            except Exception as exc:  # noqa: BLE001
+                raise ManifestError(f"uploaded AGENT.md failed validation: {exc}") from exc
+            if manifest.name.startswith("_"):
+                raise InstallError("agent name must not start with '_'")
+        return manifest
+
+    def read_agent_files(self, data: bytes):
+        """Return the validated agent manifest and a ``{path: bytes}`` map."""
+        manifest = self.validate_agent_zip(data)
+        files: dict[str, bytes] = {}
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            root = self._find_root(archive, "AGENT.md")
+            for info in archive.infolist():
+                if info.is_dir() or not info.filename.startswith(root):
+                    continue
+                rel = info.filename[len(root) :]
+                if not rel:
+                    continue
+                self._reject_unsafe(rel)
+                files[rel] = archive.read(info)
+        return manifest, files
+
+    def install_agent_zip(self, data: bytes, *, overwrite: bool = False):
+        """Install an agent archive into the agents directory."""
+        manifest = self.validate_agent_zip(data)
+        target = self._agents_dir / manifest.name
+        if target.exists() and not overwrite:
+            raise InstallError(
+                f"agent '{manifest.name}' already exists (set overwrite=true to replace)"
+            )
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            root = self._find_root(archive, "AGENT.md")
+            staged = target.with_name(f".{manifest.name}.staging")
+            self._extract(archive, root, staged)
+        if target.exists():
+            shutil.rmtree(target)
+        staged.rename(target)
+        _logger.info("Installed agent '%s' v%s", manifest.name, manifest.version)
+        return manifest
+
+    # --- Skills ----------------------------------------------------------
 
     def install_zip(self, data: bytes, *, overwrite: bool = False) -> SkillManifest:
         """Install a skill from raw ZIP bytes. Returns the validated manifest."""
@@ -117,15 +179,16 @@ class SkillInstaller:
         if total > self._settings.max_uncompressed_bytes:
             raise InstallError("archive uncompressed size exceeds the allowed limit")
 
-    @staticmethod
-    def _find_skill_root(archive: zipfile.ZipFile) -> str:
+    def _find_skill_root(self, archive: zipfile.ZipFile) -> str:
         """Return the in-archive prefix that directly contains SKILL.md."""
-        candidates = [
-            name for name in archive.namelist() if PurePosixPath(name).name == _MANIFEST_FILENAME
-        ]
+        return self._find_root(archive, _MANIFEST_FILENAME)
+
+    @staticmethod
+    def _find_root(archive: zipfile.ZipFile, filename: str) -> str:
+        """Return the in-archive prefix that directly contains ``filename``."""
+        candidates = [name for name in archive.namelist() if PurePosixPath(name).name == filename]
         if not candidates:
-            raise InstallError(f"archive does not contain a {_MANIFEST_FILENAME}")
-        # Choose the shallowest SKILL.md.
+            raise InstallError(f"archive does not contain a {filename}")
         chosen = min(candidates, key=lambda n: len(PurePosixPath(n).parts))
         parent = PurePosixPath(chosen).parent
         return "" if str(parent) == "." else f"{parent}/"

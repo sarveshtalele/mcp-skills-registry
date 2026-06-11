@@ -31,6 +31,7 @@ class Settings(BaseSettings):
 
     # --- Paths ---
     skills_dir: Path = Path("skills")
+    agents_dir: Path = Path("agents")
     db_path: Path = Path("data/registry.db")
 
     # --- Execution sandbox ---
@@ -52,6 +53,7 @@ class Settings(BaseSettings):
 
     # --- UI ---
     enable_ui: bool = True
+    frontend_dir: Path = Path("frontend/out")
 
     @property
     def github_publish_enabled(self) -> bool:
@@ -70,6 +72,11 @@ class Settings(BaseSettings):
     def resolved_skills_dir(self) -> Path:
         """Absolute path to the skills directory."""
         return self.skills_dir.expanduser().resolve()
+
+    @property
+    def resolved_agents_dir(self) -> Path:
+        """Absolute path to the agents directory."""
+        return self.agents_dir.expanduser().resolve()
 
     @property
     def resolved_db_path(self) -> Path:

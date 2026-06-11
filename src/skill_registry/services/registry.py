@@ -15,6 +15,7 @@ from skill_registry.models import (
     SkillManifest,
     SkillSummary,
 )
+from skill_registry.services.agent_loader import AgentLoader, LoadedAgent
 from skill_registry.services.audit import AuditService
 from skill_registry.services.executor import SkillExecutor
 from skill_registry.services.github_publisher import GitHubPublisher
@@ -39,10 +40,12 @@ class SkillRegistry:
         audit: AuditService,
         installer: SkillInstaller,
         publisher: GitHubPublisher,
+        agent_loader: AgentLoader,
         execution_recorder,
     ) -> None:
         self._settings = settings
         self._loader = loader
+        self._agent_loader = agent_loader
         self._validator = validator
         self._executor = executor
         self._search = search
@@ -51,14 +54,55 @@ class SkillRegistry:
         self._publisher = publisher
         self._record_execution = execution_recorder
         self._skills: dict[str, LoadedSkill] = {}
+        self._agents: dict[str, LoadedAgent] = {}
 
     # --- Catalogue management ---------------------------------------------
 
     def reload(self) -> int:
-        """(Re)scan the skills directory. Returns the number of skills loaded."""
+        """(Re)scan the skills and agents directories. Returns the skill count."""
         self._skills = self._loader.discover()
-        self._audit.record("catalogue", "reload", "success", metadata={"count": len(self._skills)})
+        self._agents = self._agent_loader.discover()
+        self._audit.record(
+            "catalogue",
+            "reload",
+            "success",
+            metadata={"skills": len(self._skills), "agents": len(self._agents)},
+        )
         return len(self._skills)
+
+    # --- Agents -----------------------------------------------------------
+
+    def list_agents(self) -> list[LoadedAgent]:
+        """Return all loaded agents."""
+        return list(self._agents.values())
+
+    def get_agent(self, name: str) -> LoadedAgent:
+        """Return an agent by name or raise :class:`SkillNotFoundError`."""
+        try:
+            return self._agents[name]
+        except KeyError as exc:
+            raise SkillNotFoundError(f"agent '{name}' is not registered") from exc
+
+    def install_and_publish_agent(self, data: bytes, *, overwrite: bool = False) -> dict:
+        """Validate, install, and (if configured) commit an agent to GitHub."""
+        manifest, files = self._installer.read_agent_files(data)
+        self._installer.install_agent_zip(data, overwrite=overwrite)
+        self.reload()
+        github_url: str | None = None
+        if self._publisher.enabled:
+            github_url = self._publisher.publish_agent(manifest.name, files)
+        self._audit.record(
+            "catalogue",
+            "publish_agent",
+            "success",
+            skill_name=manifest.name,
+            metadata={"github": bool(github_url)},
+        )
+        return {"manifest": manifest, "github_url": github_url}
+
+    def validate_agent_upload(self, data: bytes):
+        """Validate an uploaded agent ZIP without installing it."""
+        return self._installer.validate_agent_zip(data)
 
     def list_skills(self) -> list[LoadedSkill]:
         """Return all loaded skills."""

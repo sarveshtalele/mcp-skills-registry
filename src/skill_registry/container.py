@@ -9,6 +9,7 @@ from skill_registry.db import Database
 from skill_registry.mcp import MCPHandler, SessionManager
 from skill_registry.repositories import AuditRepository, ExecutionRepository
 from skill_registry.services import (
+    AgentLoader,
     AuditService,
     GitHubPublisher,
     InputValidator,
@@ -45,6 +46,7 @@ def build_container(settings: Settings) -> Container:
         audit=audit,
         installer=SkillInstaller(settings),
         publisher=GitHubPublisher(settings),
+        agent_loader=AgentLoader(settings.resolved_agents_dir),
         execution_recorder=execution_repo.record,
     )
     registry.reload()

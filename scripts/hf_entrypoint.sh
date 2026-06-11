@@ -9,10 +9,11 @@
 set -euo pipefail
 
 SKILLS_DIR="${SKILLREG_SKILLS_DIR:-/data/skills}"
-mkdir -p "${SKILLS_DIR}"
+AGENTS_DIR="${SKILLREG_AGENTS_DIR:-/data/agents}"
+mkdir -p "${SKILLS_DIR}" "${AGENTS_DIR}"
 
-if [ -d /app/skills ]; then
-    cp -rn /app/skills/. "${SKILLS_DIR}/" 2>/dev/null || true
-fi
+# Seed persistent dirs from the baked-in catalogue (no-clobber preserves uploads).
+[ -d /app/skills ] && cp -rn /app/skills/. "${SKILLS_DIR}/" 2>/dev/null || true
+[ -d /app/agents ] && cp -rn /app/agents/. "${AGENTS_DIR}/" 2>/dev/null || true
 
 exec uvicorn skill_registry.main:app --host 0.0.0.0 --port "${SKILLREG_PORT:-7860}"

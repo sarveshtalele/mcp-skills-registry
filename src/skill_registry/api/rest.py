@@ -6,7 +6,14 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
 from skill_registry.api.deps import get_registry
 from skill_registry.errors import ManifestError, SkillNotFoundError
-from skill_registry.models import ExecutionRequest, ExecutionResult, SkillManifest, SkillSummary
+from skill_registry.models import (
+    AgentManifest,
+    AgentSummary,
+    ExecutionRequest,
+    ExecutionResult,
+    SkillManifest,
+    SkillSummary,
+)
 from skill_registry.services import InstallError, SkillRegistry
 
 router = APIRouter(prefix="/api/v1", tags=["skills"])
@@ -65,6 +72,61 @@ async def upload_skill(
     except InstallError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ManifestError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/agents", response_model=list[AgentSummary])
+async def list_agents(registry: SkillRegistry = Depends(get_registry)) -> list[AgentSummary]:
+    """List registered agents."""
+    return [AgentSummary.from_manifest(a.manifest) for a in registry.list_agents()]
+
+
+@router.get("/agents/{name}", response_model=AgentManifest)
+async def get_agent(name: str, registry: SkillRegistry = Depends(get_registry)) -> AgentManifest:
+    """Return an agent's full manifest."""
+    try:
+        return registry.get_agent(name).manifest
+    except SkillNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/agents/upload", response_model=AgentManifest, status_code=201)
+async def upload_agent(
+    file: UploadFile = File(..., description="A .zip archive containing AGENT.md"),
+    overwrite: bool = Query(False),
+    registry: SkillRegistry = Depends(get_registry),
+) -> AgentManifest:
+    """Upload and install an agent packaged as a ZIP (must contain AGENT.md)."""
+    data = await file.read()
+    try:
+        return registry.install_and_publish_agent(data, overwrite=overwrite)["manifest"]
+    except InstallError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ManifestError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/skills/validate", response_model=SkillManifest)
+async def validate_skill(
+    file: UploadFile = File(...),
+    registry: SkillRegistry = Depends(get_registry),
+) -> SkillManifest:
+    """Validate a skill ZIP without installing it."""
+    try:
+        return registry.validate_upload(await file.read())
+    except (InstallError, ManifestError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/agents/validate", response_model=AgentManifest)
+async def validate_agent(
+    file: UploadFile = File(...),
+    registry: SkillRegistry = Depends(get_registry),
+) -> AgentManifest:
+    """Validate an agent ZIP without installing it."""
+    try:
+        return registry.validate_agent_upload(await file.read())
+    except (InstallError, ManifestError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 

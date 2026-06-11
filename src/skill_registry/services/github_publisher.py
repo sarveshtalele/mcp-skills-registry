@@ -41,6 +41,13 @@ class GitHubPublisher:
 
     def publish_skill(self, name: str, files: dict[str, bytes]) -> str:
         """Commit ``files`` under ``skills/<name>/``. Returns the commit URL."""
+        return self._publish("skills", name, files)
+
+    def publish_agent(self, name: str, files: dict[str, bytes]) -> str:
+        """Commit ``files`` under ``agents/<name>/``. Returns the commit URL."""
+        return self._publish("agents", name, files)
+
+    def _publish(self, folder: str, name: str, files: dict[str, bytes]) -> str:
         if not self.enabled:
             raise PublishError("GitHub publishing is not configured (no token)")
 
@@ -58,7 +65,7 @@ class GitHubPublisher:
             )
             tree_entries.append(
                 {
-                    "path": f"skills/{name}/{rel_path}",
+                    "path": f"{folder}/{name}/{rel_path}",
                     "mode": "100644",
                     "type": "blob",
                     "sha": blob["sha"],
@@ -69,7 +76,7 @@ class GitHubPublisher:
         commit = self._post(
             "/git/commits",
             {
-                "message": f"Add/update skill '{name}' via upload UI",
+                "message": f"Add/update {folder[:-1]} '{name}' via upload UI",
                 "tree": new_tree["sha"],
                 "parents": [base_commit_sha],
             },

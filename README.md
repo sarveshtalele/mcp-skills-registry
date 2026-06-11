@@ -288,15 +288,29 @@ discovery to a governed release:
 
 Flow: **legacy-discovery → topology-planning → task-decomposition → ui-modernization → test-generation → spec-governance**.
 
-## 🖥️ Upload UI
+## 🖥️ Dashboard UI
 
-An Apple-styled web UI is served at **`/ui`** (Gradio, mounted in-process). Upload a
-skill `.zip`, click **Validate** to check it matches the required format, then
-**Upload & Publish** to install it. When a GitHub token is configured
-(`SKILLREG_GITHUB_TOKEN`), publishing also commits the skill to the repo's
-`skills/` folder, which redeploys the Space — so the upload becomes permanent.
+An Apple-inspired **Next.js** dashboard is the landing page (static export built
+into the image; served by FastAPI). It lets you **browse** all skills and agents
+with search, and **upload** a skill, a spec-kit skill, or an **agent** — *Validate
+format* first, then *Upload & Publish*. With `SKILLREG_GITHUB_TOKEN` set, publishing
+also commits to the repo's `skills/` or `agents/` folder, redeploying the Space.
 
 Live: **https://sarveshtalele-mcp-skills-registry.hf.space/** (the UI is the landing page).
+
+## 🤖 Agents
+
+Agents (under `agents/`) orchestrate skills through a workflow — load one in your
+client to drive a multi-step process:
+
+| Agent | Orchestrates |
+| --- | --- |
+| `arch-analyst` | `legacy-discovery` → `topology-planning` |
+| `migration-eng` | `task-decomposition` → `ui-modernization` → `test-generation` |
+| `gatekeeper` | `spec-governance` (release gate) |
+
+`GET /api/v1/agents` lists them; upload your own via the dashboard or
+`POST /api/v1/agents/upload`.
 
 ---
 

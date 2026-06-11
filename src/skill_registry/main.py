@@ -59,24 +59,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(rest.router)
 
     if settings.enable_ui:
-        _mount_ui(app, container)
+        _mount_frontend(app, settings)
     return app
 
 
-def _mount_ui(app: FastAPI, container) -> None:
-    """Mount the Gradio upload UI at ``/ui`` (no-op if gradio is unavailable)."""
-    try:
-        import gradio as gr
+def _mount_frontend(app: FastAPI, settings: Settings) -> None:
+    """Serve the exported Next.js dashboard at ``/`` (no-op if not built).
 
-        from skill_registry.ui import build_ui
-    except ImportError:
-        _logger.warning("gradio not installed; upload UI disabled. Install the 'ui' extra.")
+    API routes (/mcp, /api/v1, /health, /info, /docs) are registered first and
+    take precedence; the static mount serves everything else.
+    """
+    from pathlib import Path
+
+    from fastapi.staticfiles import StaticFiles
+
+    out_dir = Path(settings.frontend_dir).expanduser()
+    if not out_dir.is_dir():
+        _logger.warning("Frontend not built at %s; UI disabled (API still served).", out_dir)
         return
-    demo = build_ui(container.registry, container.settings)
-    # Mount at root so the Hugging Face Space landing page is the upload UI.
-    # Specific API routes (/mcp, /api/v1, /health, /info, /docs) take precedence.
-    gr.mount_gradio_app(app, demo, path="/")
-    _logger.info("Upload UI mounted at /")
+    app.mount("/", StaticFiles(directory=str(out_dir), html=True), name="frontend")
+    _logger.info("Frontend dashboard mounted at / from %s", out_dir)
 
 
 # Module-level ASGI app for `uvicorn skill_registry.main:app` and HF Spaces.
