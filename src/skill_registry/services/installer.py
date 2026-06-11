@@ -70,6 +70,46 @@ class SkillInstaller:
         _logger.info("Installed skill '%s' v%s", manifest.name, manifest.version)
         return manifest
 
+    def validate_zip(self, data: bytes) -> SkillManifest:
+        """Validate an upload without writing anything. Returns the manifest.
+
+        Performs every check ``install_zip`` does (size, archive integrity, bomb
+        guard, manifest presence + schema, name rules) but makes no changes.
+        """
+        if len(data) > self._settings.max_upload_bytes:
+            raise InstallError("upload exceeds the maximum allowed size")
+        try:
+            archive = zipfile.ZipFile(io.BytesIO(data))
+        except zipfile.BadZipFile as exc:
+            raise InstallError(f"not a valid ZIP archive: {exc}") from exc
+        with archive:
+            self._check_zip_bomb(archive)
+            root = self._find_skill_root(archive)
+            manifest = self._read_manifest(archive, root)
+            if manifest.name.startswith("_"):
+                raise InstallError("skill name must not start with '_'")
+        return manifest
+
+    def read_files(self, data: bytes) -> tuple[SkillManifest, dict[str, bytes]]:
+        """Return the validated manifest and a ``{relative_path: bytes}`` map.
+
+        Used to publish a skill's files elsewhere (e.g. GitHub) without touching
+        the local filesystem. Applies the same safety checks as extraction.
+        """
+        manifest = self.validate_zip(data)
+        files: dict[str, bytes] = {}
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            root = self._find_skill_root(archive)
+            for info in archive.infolist():
+                if info.is_dir() or not info.filename.startswith(root):
+                    continue
+                relative = info.filename[len(root) :]
+                if not relative:
+                    continue
+                self._reject_unsafe(relative)
+                files[relative] = archive.read(info)
+        return manifest, files
+
     # --- Internals --------------------------------------------------------
 
     def _check_zip_bomb(self, archive: zipfile.ZipFile) -> None:

@@ -24,13 +24,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level)
 
+    # Build the object graph eagerly so the UI (mounted below) can use it.
+    container = build_container(settings)
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        container = build_container(settings)
-        app.state.settings = container.settings
-        app.state.registry = container.registry
-        app.state.mcp_handler = container.mcp_handler
-        app.state.sessions = container.sessions
         _logger.info(
             "%s v%s ready with %d skill(s)",
             settings.title,
@@ -45,6 +43,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         description="Discover and execute community MCP skills.",
         lifespan=lifespan,
     )
+    app.state.settings = container.settings
+    app.state.registry = container.registry
+    app.state.mcp_handler = container.mcp_handler
+    app.state.sessions = container.sessions
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -54,7 +57,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health.router)
     app.include_router(mcp.router)
     app.include_router(rest.router)
+
+    if settings.enable_ui:
+        _mount_ui(app, container)
     return app
+
+
+def _mount_ui(app: FastAPI, container) -> None:
+    """Mount the Gradio upload UI at ``/ui`` (no-op if gradio is unavailable)."""
+    try:
+        import gradio as gr
+
+        from skill_registry.ui import build_ui
+    except ImportError:
+        _logger.warning("gradio not installed; upload UI disabled. Install the 'ui' extra.")
+        return
+    demo = build_ui(container.registry, container.settings)
+    gr.mount_gradio_app(app, demo, path="/ui")
+    _logger.info("Upload UI mounted at /ui")
 
 
 # Module-level ASGI app for `uvicorn skill_registry.main:app` and HF Spaces.

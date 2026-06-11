@@ -256,6 +256,18 @@ curl -X POST http://localhost:7860/api/v1/skills/text-statistics/execute \
 
 ---
 
+## 🖥️ Upload UI
+
+An Apple-styled web UI is served at **`/ui`** (Gradio, mounted in-process). Upload a
+skill `.zip`, click **Validate** to check it matches the required format, then
+**Upload & Publish** to install it. When a GitHub token is configured
+(`SKILLREG_GITHUB_TOKEN`), publishing also commits the skill to the repo's
+`skills/` folder, which redeploys the Space — so the upload becomes permanent.
+
+Live: **https://sarveshtalele-mcp-skills-registry.hf.space/ui**
+
+---
+
 ## 🧩 Authoring a Skill
 
 A skill is one self-contained folder:

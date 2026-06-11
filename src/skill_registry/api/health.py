@@ -21,6 +21,7 @@ async def index(registry: SkillRegistry = Depends(get_registry)) -> dict:
         "endpoints": {
             "mcp": "/mcp",
             "skills": "/api/v1/skills",
+            "upload_ui": "/ui",
             "docs": "/docs",
             "health": "/health",
         },

@@ -22,6 +22,7 @@ def settings(tmp_path: Path) -> Settings:
     return Settings(
         skills_dir=_REPO_ROOT / "skills",
         db_path=tmp_path / "test.db",
+        enable_ui=False,
     )
 
 
@@ -52,7 +53,7 @@ def writable_client(tmp_path: Path) -> Iterator:
 
     skills_dir = tmp_path / "skills"
     skills_dir.mkdir()
-    settings = Settings(skills_dir=skills_dir, db_path=tmp_path / "test.db")
+    settings = Settings(skills_dir=skills_dir, db_path=tmp_path / "test.db", enable_ui=False)
     app = create_app(settings)
     with TestClient(app) as test_client:
         yield test_client

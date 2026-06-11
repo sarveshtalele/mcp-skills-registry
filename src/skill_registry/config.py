@@ -43,6 +43,21 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 5_000_000
     max_uncompressed_bytes: int = 25_000_000
 
+    # --- GitHub auto-publish (optional) ---
+    # When a GitHub token is present, uploaded skills are also committed to the
+    # repository's skills/ folder, which redeploys the Space.
+    github_token: str = ""
+    github_repo: str = "sarveshtalele/mcp-skills-registry"
+    github_branch: str = "main"
+
+    # --- UI ---
+    enable_ui: bool = True
+
+    @property
+    def github_publish_enabled(self) -> bool:
+        """True when GitHub auto-publish is configured."""
+        return bool(self.github_token and self.github_repo)
+
     # --- Semantic search (optional) ---
     enable_semantic_search: bool = False
     embedding_model: str = "all-MiniLM-L6-v2"

@@ -10,6 +10,7 @@ from skill_registry.mcp import MCPHandler, SessionManager
 from skill_registry.repositories import AuditRepository, ExecutionRepository
 from skill_registry.services import (
     AuditService,
+    GitHubPublisher,
     InputValidator,
     SearchService,
     SkillExecutor,
@@ -43,6 +44,7 @@ def build_container(settings: Settings) -> Container:
         search=SearchService(settings),
         audit=audit,
         installer=SkillInstaller(settings),
+        publisher=GitHubPublisher(settings),
         execution_recorder=execution_repo.record,
     )
     registry.reload()

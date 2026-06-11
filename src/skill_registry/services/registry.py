@@ -17,6 +17,7 @@ from skill_registry.models import (
 )
 from skill_registry.services.audit import AuditService
 from skill_registry.services.executor import SkillExecutor
+from skill_registry.services.github_publisher import GitHubPublisher
 from skill_registry.services.installer import SkillInstaller
 from skill_registry.services.loader import LoadedSkill, SkillLoader
 from skill_registry.services.search import SearchService
@@ -37,6 +38,7 @@ class SkillRegistry:
         search: SearchService,
         audit: AuditService,
         installer: SkillInstaller,
+        publisher: GitHubPublisher,
         execution_recorder,
     ) -> None:
         self._settings = settings
@@ -46,6 +48,7 @@ class SkillRegistry:
         self._search = search
         self._audit = audit
         self._installer = installer
+        self._publisher = publisher
         self._record_execution = execution_recorder
         self._skills: dict[str, LoadedSkill] = {}
 
@@ -84,6 +87,36 @@ class SkillRegistry:
             metadata={"version": manifest.version},
         )
         return manifest
+
+    def validate_upload(self, data: bytes) -> SkillManifest:
+        """Validate an uploaded ZIP without installing it."""
+        return self._installer.validate_zip(data)
+
+    def publish_enabled(self) -> bool:
+        """True when GitHub auto-publish is configured."""
+        return self._publisher.enabled
+
+    def install_and_publish(self, data: bytes, *, overwrite: bool = False) -> dict:
+        """Validate, install locally, and (if configured) commit to GitHub.
+
+        Returns ``{"manifest": SkillManifest, "github_url": str | None}``.
+        """
+        manifest, files = self._installer.read_files(data)  # validates before any write
+        self._installer.install_zip(data, overwrite=overwrite)
+        self.reload()
+
+        github_url: str | None = None
+        if self._publisher.enabled:
+            github_url = self._publisher.publish_skill(manifest.name, files)
+
+        self._audit.record(
+            "catalogue",
+            "publish",
+            "success",
+            skill_name=manifest.name,
+            metadata={"version": manifest.version, "github": bool(github_url)},
+        )
+        return {"manifest": manifest, "github_url": github_url}
 
     # --- Search -----------------------------------------------------------
 
