@@ -4,7 +4,7 @@ from __future__ import annotations
 
 
 def test_index(client):
-    resp = client.get("/")
+    resp = client.get("/info")
     assert resp.status_code == 200
     assert resp.json()["endpoints"]["mcp"] == "/mcp"
 

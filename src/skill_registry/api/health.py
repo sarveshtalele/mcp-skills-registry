@@ -11,9 +11,9 @@ from skill_registry.services import SkillRegistry
 router = APIRouter(tags=["meta"])
 
 
-@router.get("/")
+@router.get("/info")
 async def index(registry: SkillRegistry = Depends(get_registry)) -> dict:
-    """Landing endpoint: service metadata and entry points."""
+    """Service metadata and entry points (the root path serves the upload UI)."""
     return {
         "name": "MCP Skill Registry",
         "version": __version__,
@@ -21,9 +21,10 @@ async def index(registry: SkillRegistry = Depends(get_registry)) -> dict:
         "endpoints": {
             "mcp": "/mcp",
             "skills": "/api/v1/skills",
-            "upload_ui": "/ui",
+            "upload_ui": "/",
             "docs": "/docs",
             "health": "/health",
+            "info": "/info",
         },
     }
 

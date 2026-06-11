@@ -73,8 +73,10 @@ def _mount_ui(app: FastAPI, container) -> None:
         _logger.warning("gradio not installed; upload UI disabled. Install the 'ui' extra.")
         return
     demo = build_ui(container.registry, container.settings)
-    gr.mount_gradio_app(app, demo, path="/ui")
-    _logger.info("Upload UI mounted at /ui")
+    # Mount at root so the Hugging Face Space landing page is the upload UI.
+    # Specific API routes (/mcp, /api/v1, /health, /info, /docs) take precedence.
+    gr.mount_gradio_app(app, demo, path="/")
+    _logger.info("Upload UI mounted at /")
 
 
 # Module-level ASGI app for `uvicorn skill_registry.main:app` and HF Spaces.
