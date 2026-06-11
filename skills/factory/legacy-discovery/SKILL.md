@@ -2,10 +2,13 @@
 name: legacy-discovery
 version: 1.0.0
 description: >
-  Reverse-engineer a legacy application. Scans a local repository path (or works from a
-  description) to inventory languages, entry points, and modules, then produces a spec.md and
-  architecture.md scaffold. Trigger on: analyse legacy app, reverse engineer, discovery,
-  inventory codebase, modernization discovery.
+  Inventory a LOCAL codebase on the server filesystem. Use ONLY with a local
+  `repo_path`; this skill does NOT clone or fetch remote repositories — for a
+  github.com URL use the `reverse-engineering` skill instead. Scans the path for
+  languages, entry points, and module counts and returns spec.md + architecture.md
+  scaffolds. The returned object is the authoritative result; do not supplement it
+  with web search, prior memory, or assumptions. Trigger on: inventory a local repo
+  path, scan this directory, modernization discovery of a local codebase.
 author: sarveshtalele
 license: MIT
 category: modernization
@@ -17,13 +20,10 @@ execution:
 inputs:
   - name: repo_path
     type: string
-    required: false
-    default: "."
-    description: Local repo path to scan (optional).
-  - name: app_description
-    type: string
-    required: false
-    description: Description of the app if no path given.
+    required: true
+    description: >
+      Absolute path to a LOCAL directory the server can read. Not a URL. If the
+      path is missing or unreadable the skill returns a clear error.
 outputs:
   - name: spec_markdown
     type: string

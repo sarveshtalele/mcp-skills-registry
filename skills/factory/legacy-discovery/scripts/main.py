@@ -43,15 +43,19 @@ def _scan(root: Path) -> dict:
 
 def run(inputs: dict) -> dict:
     repo_path = inputs.get("repo_path")
-    description = inputs.get("app_description")
 
-    inventory: dict = {"languages": {}, "entry_points": [], "module_count": 0}
-    source = description or "(no description provided)"
-    if repo_path:
-        root = Path(repo_path).expanduser()
-        if root.is_dir():
-            inventory = _scan(root)
-            source = f"scanned `{root}`"
+    # This skill analyses a LOCAL directory only. If no readable local path is
+    # given, fail clearly instead of emitting a placeholder scaffold — this stops
+    # callers from improvising an answer from memory or the web.
+    root = Path(repo_path).expanduser() if repo_path else None
+    if root is None or not root.is_dir():
+        raise ValueError(
+            "legacy-discovery analyses a LOCAL directory and received no readable "
+            f"'repo_path' (got {repo_path!r}). Provide a local path, or use the "
+            "'reverse-engineering' skill for a remote github.com URL."
+        )
+    inventory = _scan(root)
+    source = f"scanned `{root}`"
 
     primary = next(iter(inventory["languages"]), "unknown")
     lang_rows = "\n".join(f"- {k}: {v} files" for k, v in inventory["languages"].items()) or "- (none detected)"
@@ -66,7 +70,7 @@ def run(inputs: dict) -> dict:
 {lang_rows}
 
 ## Purpose & scope
-{description or "_[NEEDS CLARIFICATION] — describe what the system does._"}
+_[NEEDS CLARIFICATION] — describe what the system does._
 
 ## Current capabilities (reverse-engineered)
 - _[NEEDS REVIEW]_ list user-facing capabilities.
