@@ -1,1 +1,0 @@
-# As-Is Architecture\n\n## Primary language\n{primary}\n

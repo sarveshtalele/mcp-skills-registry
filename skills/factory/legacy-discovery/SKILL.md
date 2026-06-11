@@ -1,75 +1,84 @@
 ---
 name: legacy-discovery
-version: 1.0.0
+version: 2.0.0
 description: >
-  Inventory a LOCAL codebase on the server filesystem. Use ONLY with a local
-  `repo_path`; this skill does NOT clone or fetch remote repositories — for a
-  github.com URL use the `reverse-engineering` skill instead. Scans the path for
-  languages, entry points, and module counts and returns spec.md + architecture.md
-  scaffolds. The returned object is the authoritative result; do not supplement it
-  with web search, prior memory, or assumptions. Trigger on: inventory a local repo
-  path, scan this directory, modernization discovery of a local codebase.
+  Reverse-engineer / discover a codebase. Works in two modes — provide EXACTLY one
+  input: `repo_url` (a github.com URL) clones the repo server-side and runs full
+  static analysis, producing a System Design Document, architecture + dependency
+  overview, and a 100-point quality score; `repo_path` (a local directory the
+  server can read) inventories languages, entry points, and modules and returns
+  spec + architecture scaffolds. The returned object is the authoritative analysis
+  — rely on it and do not supplement with web search or prior memory. Trigger on:
+  reverse engineer, analyse this repo, discovery, inventory a codebase, generate an
+  SDD, explain this repository, modernization discovery.
 author: sarveshtalele
 license: MIT
-category: modernization
-tags: [modernization, legacy, discovery, architecture]
+category: software-engineering
+tags: [reverse-engineering, discovery, architecture, static-analysis, modernization]
 execution:
   type: python-script
   entrypoint: scripts/main.py:run
-  timeout_seconds: 60
+  timeout_seconds: 120
 inputs:
+  - name: repo_url
+    type: string
+    required: false
+    description: >
+      A public github.com URL to clone and analyse (remote mode). Provide this OR
+      repo_path, not both.
   - name: repo_path
     type: string
-    required: true
+    required: false
     description: >
-      Absolute path to a LOCAL directory the server can read. Not a URL. If the
-      path is missing or unreadable the skill returns a clear error.
+      A local directory the server can read (local mode). Provide this OR repo_url.
 outputs:
+  - name: mode
+    type: string
+    description: Either remote (URL clone + SDD) or local (filesystem scan).
+  - name: report_markdown
+    type: string
+    description: Remote mode — the generated architectural report (size-capped).
+  - name: manifest
+    type: object
+    description: Remote mode — run record with metrics and generated-file metadata.
   - name: spec_markdown
     type: string
-    description: Specification scaffold.
+    description: Local mode — specification scaffold.
   - name: architecture_markdown
     type: string
-    description: Architecture overview.
+    description: Local mode — as-is architecture overview.
   - name: inventory
     type: object
-    description: Detected languages and counts.
+    description: Local mode — detected languages, entry points, module count.
 status: active
 ---
 
 # legacy-discovery
 
-Reverse-engineer a legacy application into a reviewable specification and an
-as-is architecture document, with a language/entry-point inventory.
+Discover and reverse-engineer a codebase — one skill, two modes.
 
 ## When to use
-Deployment/Release or Discovery SDLC phase, when you need to understand an
-existing system before modernizing it. Triggers: *analyse legacy app, reverse
-engineer, inventory codebase, modernization discovery*.
+- You have a **github.com URL** → pass `repo_url` (remote: clone + full SDD).
+- You have a **local directory** the server can read → pass `repo_path` (local scan).
 
-## Inputs
-- `repo_path` (string, optional) — local path to scan. Defaults to `.`.
-- `app_description` (string, optional) — used when no path is available.
+Provide exactly one. Passing neither, or both, returns a clear error.
 
 ## Outputs
-- `spec_markdown` — specification scaffold with `[NEEDS CLARIFICATION]` markers.
-- `architecture_markdown` — as-is architecture overview.
-- `inventory` — `{languages, entry_points, module_count}`.
+- `mode` — `remote` or `local`.
+- Remote: `manifest`, `report_markdown`, `sdd_available`.
+- Local: `spec_markdown`, `architecture_markdown`, `inventory`.
 
-## How it works
-1. If `repo_path` is a directory, walk it (skipping VCS/build/vendor dirs).
-2. Classify files by extension into languages; detect candidate entry points.
-3. Emit a spec + architecture scaffold seeded with what was detected.
+## Guardrails
+The returned object is the complete analysis. Do not supplement it with web
+search, external fetches, or prior memory — report exactly what the skill returns.
 
 ## User stories
-- *As an architect*, I scan a repo and get a starting spec so I don't begin from
-  a blank page.
-- *As a tech lead*, I see the language mix and entry points to scope the work.
+- *As an architect*, I point at a GitHub URL and get an SDD without cloning by hand.
+- *As a maintainer*, I scan a local checkout to inventory its stack and entry points.
 
 ## Edge cases
-- No path and no description → scaffolds with explicit clarification markers.
-- Path does not exist → falls back to description-only mode.
-- Binary-heavy or empty repos → `inventory` reports zero modules, no crash.
+- Neither input → error asking for `repo_url` or `repo_path`.
+- Both inputs → error (ambiguous).
+- `repo_path` not a directory → clear error suggesting `repo_url` for remotes.
 
-## Files
-See [DOCS.md](DOCS.md) for what every file in this skill does.
+See the analysis `engine/` under `scripts/` for the remote-mode pipeline.
