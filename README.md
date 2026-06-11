@@ -136,15 +136,21 @@ curl http://localhost:7860/health
 # {"status":"ok","version":"0.2.0","skills_loaded":1}
 ```
 
-A public instance runs at **https://sarveshtalele-mcp-skills-registry.hf.space**.
+**Live on Hugging Face:** https://huggingface.co/spaces/sarveshtalele/mcp-skills-registry
+
+> **Two URLs, two purposes.** The Space page above is where you *open the app* (the
+> upload UI loads there). MCP/REST clients, however, connect to the **app host** that
+> Hugging Face serves the running container on:
+> `https://sarveshtalele-mcp-skills-registry.hf.space`. The API is **not** reachable
+> under `huggingface.co/spaces/...` — that path serves the website, not the container.
 
 ---
 
 ## 🔗 Connect an MCP Client
 
 The server speaks the **Streamable HTTP** MCP transport at `/mcp`, so modern clients
-connect directly. Use your local URL (`http://localhost:7860/mcp`) or the hosted one
-(`https://sarveshtalele-mcp-skills-registry.hf.space/mcp`).
+connect directly. Use your local URL (`http://localhost:7860/mcp`) or the hosted
+**app host** (`https://sarveshtalele-mcp-skills-registry.hf.space/mcp`).
 
 ### Claude Code
 
@@ -264,7 +270,8 @@ skill `.zip`, click **Validate** to check it matches the required format, then
 (`SKILLREG_GITHUB_TOKEN`), publishing also commits the skill to the repo's
 `skills/` folder, which redeploys the Space — so the upload becomes permanent.
 
-Live: **https://sarveshtalele-mcp-skills-registry.hf.space/ui**
+Open it on Hugging Face: **https://huggingface.co/spaces/sarveshtalele/mcp-skills-registry**
+(the UI is the Space's landing page).
 
 ---
 
