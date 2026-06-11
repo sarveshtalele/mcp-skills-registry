@@ -272,6 +272,22 @@ to backlog — usable from any MCP client:
 Typical flow in your client: **constitution → specify → plan → tasks**, committing
 each artifact as you go.
 
+## 🏭 Governed Engineering Factory (factory)
+
+A modernization suite (under `skills/factory/`) takes a legacy system from
+discovery to a governed release:
+
+| Skill | Purpose |
+| --- | --- |
+| `legacy-discovery` | Reverse-engineer a legacy app (scans a repo path) → spec + architecture + inventory |
+| `topology-planning` | Target architecture + phased migration plan + ADRs |
+| `task-decomposition` | Spec → dependency-ordered `tasks.yaml` backlog |
+| `ui-modernization` | Legacy UI → React component plan + starter stubs |
+| `test-generation` | Unit/integration/e2e test strategy + stubs |
+| `spec-governance` | Compliance audit with a pass/fail gate and score |
+
+Flow: **legacy-discovery → topology-planning → task-decomposition → ui-modernization → test-generation → spec-governance**.
+
 ## 🖥️ Upload UI
 
 An Apple-styled web UI is served at **`/ui`** (Gradio, mounted in-process). Upload a

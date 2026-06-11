@@ -31,10 +31,12 @@ def test_discover_finds_example_skill_and_skips_template(settings):
 
 
 def test_discover_finds_grouped_skills(settings):
-    """Skills nested in a group folder (skills/speckit/<name>) are discovered."""
+    """Skills nested in group folders (speckit/, factory/) are discovered."""
     skills = SkillLoader(settings.resolved_skills_dir).discover()
     assert "speckit-specify" in skills
     assert "speckit-tasks" in skills
+    assert "legacy-discovery" in skills
+    assert "spec-governance" in skills
 
 
 def test_loaded_skill_entrypoint_path(settings):
