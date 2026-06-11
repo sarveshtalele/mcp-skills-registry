@@ -39,4 +39,33 @@ status: active
 
 # ui-modernization
 
-Plan migration of a legacy UI to a modern React component architecture. Produces a component inventory, a target component tree, and starter React + test stubs. Trigger on: modernize UI, convert to React, UI migration, frontend modernization.
+Plan a legacy UI migration to a modern component framework (React by default):
+component inventory, target tree, and starter stubs.
+
+## When to use
+When modernizing a front end. Triggers: *modernize UI, convert to React, UI
+migration, frontend modernization*.
+
+## Inputs
+- `screens` (array of strings, required) — legacy screen/page names.
+- `framework` (string, optional, default `react`).
+
+## Outputs
+- `plan_markdown` — inventory, target tree, approach, definition of done.
+- `components` — derived component names.
+- `sample_component` — a starter component stub.
+
+## How it works
+Derives PascalCase component names from screen names, builds a target tree, and
+emits a strangler migration approach with a per-screen DoD.
+
+## User stories
+- *As a front-end lead*, I get a component map and a sample to start porting.
+
+## Edge cases
+- A single screen passed as a string is accepted.
+- Empty screen list → clear error (nothing to plan).
+- Messy names with punctuation → sanitised into valid component identifiers.
+
+## Files
+See [DOCS.md](DOCS.md). Figma mapping guidance lives in `figma/`.

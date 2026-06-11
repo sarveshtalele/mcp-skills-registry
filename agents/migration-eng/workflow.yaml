@@ -1,0 +1,10 @@
+steps:
+  - id: decompose
+    uses: task-decomposition
+    description: Turn the spec into a dependency-ordered backlog.
+  - id: modernize-ui
+    uses: ui-modernization
+    description: Plan and scaffold the React component migration.
+  - id: generate-tests
+    uses: test-generation
+    description: Produce the test strategy and stubs.

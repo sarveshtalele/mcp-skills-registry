@@ -36,6 +36,12 @@ export default function Page() {
     refresh();
   }, []);
 
+  async function remove(kind: "skills" | "agents", name: string) {
+    if (!confirm(`Delete ${name}? This removes it from the registry.`)) return;
+    await fetch(`${API}/${kind}/${name}`, { method: "DELETE" });
+    refresh();
+  }
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return skills;
@@ -51,8 +57,7 @@ export default function Page() {
     <>
       <header className="hero">
         <span className="eyebrow">MCP Skill Registry</span>
-        <h1>Skills & agents,
-          <br />ready for any client.</h1>
+        <h1>Skills &amp; agents,<br />ready for any client.</h1>
         <p>
           Browse the catalogue, upload your own skills and agents, and run them from
           Claude Code, Claude Desktop, or GitHub Copilot.
@@ -91,6 +96,7 @@ export default function Page() {
                       <span className="group-pill">{s.category}</span>
                       {s.tags?.slice(0, 3).map((t) => <span className="tag" key={t}>{t}</span>)}
                     </div>
+                    <button className="del" onClick={() => remove("skills", s.name)}>Delete</button>
                   </div>
                 ))}
                 {filtered.length === 0 && <p className="muted">No skills match “{query}”.</p>}
@@ -110,6 +116,7 @@ export default function Page() {
                     <div className="tags">
                       {a.skills?.map((sk) => <span className="tag" key={sk}>{sk}</span>)}
                     </div>
+                    <button className="del" onClick={() => remove("agents", a.name)}>Delete</button>
                   </div>
                 ))}
                 {agents.length === 0 && <p className="muted">No agents yet.</p>}
@@ -128,36 +135,47 @@ export default function Page() {
   );
 }
 
+type UploadResult = {
+  name: string;
+  version: string;
+  installed_files: string[];
+  warnings: string[];
+  github_url: string | null;
+};
+
 function UploadPanel({ onDone }: { onDone: () => void }) {
   const [kind, setKind] = useState<"skill" | "agent">("skill");
   const [file, setFile] = useState<File | null>(null);
-  const [overwrite, setOverwrite] = useState(false);
+  const [overwrite, setOverwrite] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [result, setResult] = useState<UploadResult | null>(null);
 
-  const validatePath = kind === "skill" ? "skills/validate" : "agents/validate";
-  const uploadPath = kind === "skill" ? "skills/upload" : "agents/upload";
+  const base = kind === "skill" ? "skills" : "agents";
 
-  async function call(path: string, withOverwrite = false) {
+  async function go(action: "validate" | "upload") {
     if (!file) {
       setMsg({ ok: false, text: "Choose a .zip file first." });
       return;
     }
     setBusy(true);
     setMsg(null);
+    setResult(null);
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const url = `${API}/${path}${withOverwrite && overwrite ? "?overwrite=true" : ""}`;
+      const path = action === "validate" ? `${base}/validate` : `${base}/upload`;
+      const url = `${API}/${path}${action === "upload" ? `?overwrite=${overwrite}` : ""}`;
       const res = await fetch(url, { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) {
         setMsg({ ok: false, text: `❌ ${data.detail || "Request failed"}` });
-      } else if (withOverwrite) {
-        setMsg({ ok: true, text: `🎉 ${data.name} v${data.version} published. It is live now.` });
-        onDone();
+      } else if (action === "validate") {
+        setMsg({ ok: true, text: `✅ Valid — ${data.name} v${data.version}. Click Upload & Publish.` });
       } else {
-        setMsg({ ok: true, text: `✅ Valid — ${data.name} v${data.version}. Click Publish.` });
+        setMsg({ ok: true, text: `🎉 ${data.name} v${data.version} is live.` });
+        setResult(data as UploadResult);
+        onDone();
       }
     } catch (e) {
       setMsg({ ok: false, text: `❌ ${String(e)}` });
@@ -175,26 +193,21 @@ function UploadPanel({ onDone }: { onDone: () => void }) {
       </div>
       <div className="panel">
         <label className="drop">
-          <input
-            type="file"
-            accept=".zip"
-            onChange={(e) => { setFile(e.target.files?.[0] ?? null); setMsg(null); }}
-          />
-          {file ? (
-            <strong>{file.name}</strong>
-          ) : (
+          <input type="file" accept=".zip" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setMsg(null); setResult(null); }} />
+          {file ? <strong>{file.name}</strong> : (
             <>
               <strong>Click to choose a {kind} .zip</strong>
               <div className="muted" style={{ marginTop: 6 }}>
                 Must contain {kind === "skill" ? "SKILL.md" : "AGENT.md"} at the root or one folder deep.
+                A wrapper folder is detected automatically.
               </div>
             </>
           )}
         </label>
 
         <div className="row">
-          <button className="btn ghost" disabled={busy} onClick={() => call(validatePath)}>Validate format</button>
-          <button className="btn primary" disabled={busy} onClick={() => call(uploadPath, true)}>Upload &amp; Publish</button>
+          <button className="btn ghost" disabled={busy} onClick={() => go("validate")}>Validate format</button>
+          <button className="btn primary" disabled={busy} onClick={() => go("upload")}>Upload &amp; Publish</button>
           <label className="checkbox">
             <input type="checkbox" checked={overwrite} onChange={(e) => setOverwrite(e.target.checked)} />
             Overwrite if it exists
@@ -202,6 +215,24 @@ function UploadPanel({ onDone }: { onDone: () => void }) {
         </div>
 
         {msg && <div className={`result ${msg.ok ? "ok" : "err"}`}>{msg.text}</div>}
+
+        {result && (
+          <div className="report">
+            <div className="report-h">Installed files</div>
+            <ul className="tree">
+              {result.installed_files.map((f) => <li key={f}><code>{f}</code></li>)}
+            </ul>
+            {result.warnings.length > 0 && (
+              <>
+                <div className="report-h">Advisories</div>
+                <ul className="warn">{result.warnings.map((wn, i) => <li key={i}>{wn}</li>)}</ul>
+              </>
+            )}
+            {result.github_url && (
+              <p className="muted">Committed to GitHub — <a href={result.github_url}>view commit</a>. The Space will redeploy.</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

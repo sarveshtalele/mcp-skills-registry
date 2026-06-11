@@ -1,0 +1,6 @@
+steps:
+  - id: audit
+    uses: spec-governance
+    description: Score artifacts against governance rules; pass or block.
+  - id: report
+    description: Publish the audit report and the gate decision.

@@ -35,19 +35,21 @@ class AgentManifest(BaseModel):
     tools: list[str] = Field(default_factory=list)
     workflow: list[WorkflowStep] = Field(default_factory=list)
 
-    @field_validator("name")
+    @field_validator("name", mode="before")
     @classmethod
-    def _valid_name(cls, value: str) -> str:
-        if not _SLUG_RE.match(value):
-            raise ValueError(f"agent name '{value}' must be a lowercase slug (a-z, 0-9, hyphen)")
-        return value
+    def _coerce_name(cls, value: object) -> str:
+        """Coerce any name into a safe lowercase slug rather than rejecting it."""
+        import re
 
-    @field_validator("version")
+        slug = re.sub(r"[^a-z0-9]+", "-", str(value or "").strip().lower()).strip("-")
+        return slug or "unnamed-agent"
+
+    @field_validator("version", mode="before")
     @classmethod
-    def _valid_version(cls, value: str) -> str:
-        if not _SEMVER_RE.match(value):
-            raise ValueError(f"version '{value}' must be semantic (MAJOR.MINOR.PATCH)")
-        return value
+    def _coerce_version(cls, value: object) -> str:
+        """Accept any version; default to 0.0.0 when not semantic."""
+        text = str(value or "").strip()
+        return text if _SEMVER_RE.match(text) else (text or "0.0.0")
 
 
 class AgentSummary(BaseModel):

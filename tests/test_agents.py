@@ -48,7 +48,8 @@ def test_upload_agent(writable_client, tmp_path, monkeypatch):
     assert resp.json()["name"] == "demo-agent"
 
 
-def test_validate_agent_bad_manifest(writable_client):
+def test_validate_agent_coerces_name(writable_client):
+    """A non-slug agent name is coerced, not rejected."""
     bad = io.BytesIO()
     with zipfile.ZipFile(bad, "w") as zf:
         zf.writestr("x/AGENT.md", "---\nname: Bad Name!\ndescription: d\n---\n")
@@ -56,4 +57,15 @@ def test_validate_agent_bad_manifest(writable_client):
         "/api/v1/agents/validate",
         files={"file": ("a.zip", bad.getvalue(), "application/zip")},
     )
-    assert resp.status_code == 422
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "bad-name"
+
+
+def test_delete_agent(writable_client):
+    writable_client.post(
+        "/api/v1/agents/upload",
+        files={"file": ("a.zip", _agent_zip("temp-agent"), "application/zip")},
+        params={"overwrite": "true"},
+    )
+    assert writable_client.delete("/api/v1/agents/temp-agent").status_code == 204
+    assert writable_client.get("/api/v1/agents/temp-agent").status_code == 404

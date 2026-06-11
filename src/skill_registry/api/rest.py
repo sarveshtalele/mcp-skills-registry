@@ -13,6 +13,7 @@ from skill_registry.models import (
     ExecutionResult,
     SkillManifest,
     SkillSummary,
+    UploadResult,
 )
 from skill_registry.services import InstallError, SkillRegistry
 
@@ -55,24 +56,33 @@ async def execute_skill(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/skills/upload", response_model=SkillManifest, status_code=201)
+@router.post("/skills/upload", response_model=UploadResult, status_code=201)
 async def upload_skill(
     file: UploadFile = File(..., description="A .zip archive containing SKILL.md"),
-    overwrite: bool = Query(False, description="Replace an existing skill of the same name"),
+    overwrite: bool = Query(True, description="Replace an existing skill of the same name"),
     registry: SkillRegistry = Depends(get_registry),
-) -> SkillManifest:
+) -> UploadResult:
     """Upload and install a skill packaged as a ZIP archive.
 
-    The archive must contain a ``SKILL.md`` (at the root or one folder deep). The
-    skill name is taken from the manifest; files install into ``skills/<name>/``.
+    A single wrapper folder is auto-detected (the archive's ``SKILL.md`` location
+    defines the skill root, so ``my-skill/SKILL.md`` and a flat ``SKILL.md`` both
+    work). The manifest is coerced rather than rejected; the response reports the
+    installed file tree and any advisories. Re-uploading the same name overwrites it.
     """
     data = await file.read()
     try:
-        return registry.install_zip(data, overwrite=overwrite)
-    except InstallError as exc:
+        return registry.install_and_publish(data, overwrite=overwrite)
+    except (InstallError, ManifestError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except ManifestError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.delete("/skills/{name}", status_code=204)
+async def delete_skill(name: str, registry: SkillRegistry = Depends(get_registry)) -> None:
+    """Delete a skill from the registry."""
+    try:
+        registry.delete_skill(name)
+    except SkillNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/agents", response_model=list[AgentSummary])
@@ -90,20 +100,27 @@ async def get_agent(name: str, registry: SkillRegistry = Depends(get_registry)) 
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/agents/upload", response_model=AgentManifest, status_code=201)
+@router.post("/agents/upload", response_model=UploadResult, status_code=201)
 async def upload_agent(
     file: UploadFile = File(..., description="A .zip archive containing AGENT.md"),
-    overwrite: bool = Query(False),
+    overwrite: bool = Query(True),
     registry: SkillRegistry = Depends(get_registry),
-) -> AgentManifest:
+) -> UploadResult:
     """Upload and install an agent packaged as a ZIP (must contain AGENT.md)."""
     data = await file.read()
     try:
-        return registry.install_and_publish_agent(data, overwrite=overwrite)["manifest"]
-    except InstallError as exc:
+        return registry.install_and_publish_agent(data, overwrite=overwrite)
+    except (InstallError, ManifestError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except ManifestError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.delete("/agents/{name}", status_code=204)
+async def delete_agent(name: str, registry: SkillRegistry = Depends(get_registry)) -> None:
+    """Delete an agent from the registry."""
+    try:
+        registry.delete_agent(name)
+    except SkillNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post("/skills/validate", response_model=SkillManifest)

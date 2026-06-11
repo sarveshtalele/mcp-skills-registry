@@ -1,0 +1,5 @@
+# Machine-readable manifest mirror of SKILL.md frontmatter.
+name: task-decomposition
+runtime: python-script
+entrypoint: scripts/main.py:run
+see: SKILL.md

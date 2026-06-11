@@ -1,0 +1,14 @@
+# Weighted required artifacts (must sum to <= 100). Gate passes at >= 70.
+threshold: 70
+required_artifacts:
+  spec.md: 20
+  plan.md: 15
+  tasks.yaml: 10
+  tests: 25
+  architecture.md: 15
+  adr: 15
+required_spec_sections:
+  - overview
+  - requirements
+  - acceptance
+  - out of scope

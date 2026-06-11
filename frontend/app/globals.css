@@ -109,3 +109,18 @@ a { color: var(--amber-d); text-decoration: none; }
 .result.err { background: #fef2f2; color: #b91c1c; border: 1px solid #f6d2d2; }
 .muted { color: var(--muted); font-size: 13px; }
 .foot { text-align: center; color: var(--muted); font-size: 13px; margin-top: 56px; }
+
+/* Delete button on cards */
+.del {
+  margin-top: 14px; border: 1px solid var(--line); background: #fff; color: #b91c1c;
+  border-radius: 980px; padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.del:hover { background: #fef2f2; border-color: #f6d2d2; }
+
+/* Upload report */
+.report { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; }
+.report-h { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px; }
+.tree { list-style: none; padding: 0; margin: 0 0 12px; }
+.tree li { padding: 3px 0; }
+.tree code { background: #f5f5f7; padding: 2px 8px; border-radius: 8px; font-size: 13px; }
+.warn { margin: 0 0 12px 18px; color: var(--amber-d); font-size: 14px; }

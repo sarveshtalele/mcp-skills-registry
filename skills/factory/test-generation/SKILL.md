@@ -36,4 +36,32 @@ status: active
 
 # test-generation
 
-Generate a test strategy and starter test stubs for given modules across unit, integration, and e2e layers (pytest/jest/playwright). Trigger on: generate tests, test plan, test strategy, coverage plan, test scaffolding.
+Produce a layered test strategy (unit/integration/e2e) and starter stubs for the
+given modules across pytest, jest, and playwright.
+
+## When to use
+When establishing or improving test coverage. Triggers: *generate tests, test
+plan, coverage plan, test scaffolding*.
+
+## Inputs
+- `modules` (array of strings, required).
+- `frameworks` (array, optional, default `[pytest, jest, playwright]`).
+
+## Outputs
+- `test_plan_markdown` — pyramid, coverage matrix, targets.
+- `stubs` — starter tests per module per framework.
+
+## How it works
+Builds a coverage matrix for the modules and emits idiomatic stubs per requested
+framework from the templates in `jest_templates/` and `playwright_templates/`.
+
+## User stories
+- *As an engineer*, I get a coverage plan and runnable stubs to fill in.
+
+## Edge cases
+- A single module string is accepted.
+- Empty modules → clear error.
+- Unknown frameworks are ignored gracefully.
+
+## Files
+See [DOCS.md](DOCS.md).

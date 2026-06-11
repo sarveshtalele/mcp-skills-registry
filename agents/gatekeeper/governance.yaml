@@ -1,0 +1,4 @@
+# Gate policy for the gatekeeper agent.
+threshold: 70
+block_on_fail: true
+escalate_to: maintainers

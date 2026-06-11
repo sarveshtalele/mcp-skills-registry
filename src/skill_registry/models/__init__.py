@@ -9,6 +9,7 @@ from skill_registry.models.skill import (
     SkillManifest,
     SkillParameter,
     SkillSummary,
+    UploadResult,
 )
 
 __all__ = [
@@ -25,4 +26,5 @@ __all__ = [
     "SkillManifest",
     "SkillParameter",
     "SkillSummary",
+    "UploadResult",
 ]

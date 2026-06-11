@@ -1,0 +1,9 @@
+steps:
+  - id: discover
+    uses: legacy-discovery
+    description: Scan the legacy app; produce spec + architecture + inventory.
+  - id: plan-topology
+    uses: topology-planning
+    description: Define the target architecture and phased migration plan.
+  - id: handoff
+    description: Package the spec and blueprint for migration-eng.

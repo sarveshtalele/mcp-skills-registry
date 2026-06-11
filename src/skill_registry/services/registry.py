@@ -6,6 +6,8 @@ execution, search, persistence, and auditing.
 
 from __future__ import annotations
 
+import shutil
+
 from skill_registry.config import Settings
 from skill_registry.errors import SkillNotFoundError, ValidationError
 from skill_registry.logging_config import get_logger
@@ -14,6 +16,7 @@ from skill_registry.models import (
     ExecutionStatus,
     SkillManifest,
     SkillSummary,
+    UploadResult,
 )
 from skill_registry.services.agent_loader import AgentLoader, LoadedAgent
 from skill_registry.services.audit import AuditService
@@ -25,6 +28,22 @@ from skill_registry.services.search import SearchService
 from skill_registry.services.validator import InputValidator
 
 _logger = get_logger(__name__)
+
+
+def _skill_warnings(manifest, files: dict) -> list[str]:
+    """Non-blocking advisories shown to the uploader (never reject the upload)."""
+    warnings: list[str] = []
+    if "SKILL.md" not in files:
+        warnings.append("SKILL.md not found at the skill root after extraction")
+    if manifest.execution.type.value == "python-script":
+        if manifest.execution.script_path not in files:
+            warnings.append(
+                f"entrypoint '{manifest.execution.script_path}' not present — "
+                "the skill will load but cannot execute until added"
+            )
+    if not manifest.description:
+        warnings.append("no description provided")
+    return warnings
 
 
 class SkillRegistry:
@@ -83,7 +102,7 @@ class SkillRegistry:
         except KeyError as exc:
             raise SkillNotFoundError(f"agent '{name}' is not registered") from exc
 
-    def install_and_publish_agent(self, data: bytes, *, overwrite: bool = False) -> dict:
+    def install_and_publish_agent(self, data: bytes, *, overwrite: bool = False) -> UploadResult:
         """Validate, install, and (if configured) commit an agent to GitHub."""
         manifest, files = self._installer.read_agent_files(data)
         self._installer.install_agent_zip(data, overwrite=overwrite)
@@ -98,7 +117,31 @@ class SkillRegistry:
             skill_name=manifest.name,
             metadata={"github": bool(github_url)},
         )
-        return {"manifest": manifest, "github_url": github_url}
+        warnings = [] if "AGENT.md" in files else ["AGENT.md not found at the expected location"]
+        return UploadResult(
+            name=manifest.name,
+            version=manifest.version,
+            kind="agent",
+            installed_files=sorted(files),
+            github_url=github_url,
+            warnings=warnings,
+        )
+
+    def delete_agent(self, name: str) -> None:
+        """Remove an agent from disk and refresh the catalogue."""
+        agent = self.get_agent(name)
+        self._safe_rmtree(agent.directory, self._settings.resolved_agents_dir)
+        self.reload()
+        self._audit.record("catalogue", "delete_agent", "success", skill_name=name)
+
+    @staticmethod
+    def _safe_rmtree(target, root) -> None:
+        """Delete ``target`` only if it is inside ``root`` (guards traversal)."""
+        target = target.resolve()
+        root = root.resolve()
+        if target == root or root not in target.parents:
+            raise SkillNotFoundError("refusing to delete outside the managed directory")
+        shutil.rmtree(target)
 
     def validate_agent_upload(self, data: bytes):
         """Validate an uploaded agent ZIP without installing it."""
@@ -140,12 +183,9 @@ class SkillRegistry:
         """True when GitHub auto-publish is configured."""
         return self._publisher.enabled
 
-    def install_and_publish(self, data: bytes, *, overwrite: bool = False) -> dict:
-        """Validate, install locally, and (if configured) commit to GitHub.
-
-        Returns ``{"manifest": SkillManifest, "github_url": str | None}``.
-        """
-        manifest, files = self._installer.read_files(data)  # validates before any write
+    def install_and_publish(self, data: bytes, *, overwrite: bool = False) -> UploadResult:
+        """Validate, install locally, and (if configured) commit a skill to GitHub."""
+        manifest, files = self._installer.read_files(data)
         self._installer.install_zip(data, overwrite=overwrite)
         self.reload()
 
@@ -160,7 +200,21 @@ class SkillRegistry:
             skill_name=manifest.name,
             metadata={"version": manifest.version, "github": bool(github_url)},
         )
-        return {"manifest": manifest, "github_url": github_url}
+        return UploadResult(
+            name=manifest.name,
+            version=manifest.version,
+            kind="skill",
+            installed_files=sorted(files),
+            github_url=github_url,
+            warnings=_skill_warnings(manifest, files),
+        )
+
+    def delete_skill(self, name: str) -> None:
+        """Remove a skill from disk and refresh the catalogue."""
+        skill = self.get(name)
+        self._safe_rmtree(skill.directory, self._settings.resolved_skills_dir)
+        self.reload()
+        self._audit.record("catalogue", "delete", "success", skill_name=name)
 
     # --- Search -----------------------------------------------------------
 

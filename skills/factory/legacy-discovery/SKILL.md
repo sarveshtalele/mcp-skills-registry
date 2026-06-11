@@ -39,4 +39,37 @@ status: active
 
 # legacy-discovery
 
-Reverse-engineer a legacy application. Scans a local repository path (or works from a description) to inventory languages, entry points, and modules, then produces a spec.md and architecture.md scaffold. Trigger on: analyse legacy app, reverse engineer, discovery, inventory codebase, modernization discovery.
+Reverse-engineer a legacy application into a reviewable specification and an
+as-is architecture document, with a language/entry-point inventory.
+
+## When to use
+Deployment/Release or Discovery SDLC phase, when you need to understand an
+existing system before modernizing it. Triggers: *analyse legacy app, reverse
+engineer, inventory codebase, modernization discovery*.
+
+## Inputs
+- `repo_path` (string, optional) — local path to scan. Defaults to `.`.
+- `app_description` (string, optional) — used when no path is available.
+
+## Outputs
+- `spec_markdown` — specification scaffold with `[NEEDS CLARIFICATION]` markers.
+- `architecture_markdown` — as-is architecture overview.
+- `inventory` — `{languages, entry_points, module_count}`.
+
+## How it works
+1. If `repo_path` is a directory, walk it (skipping VCS/build/vendor dirs).
+2. Classify files by extension into languages; detect candidate entry points.
+3. Emit a spec + architecture scaffold seeded with what was detected.
+
+## User stories
+- *As an architect*, I scan a repo and get a starting spec so I don't begin from
+  a blank page.
+- *As a tech lead*, I see the language mix and entry points to scope the work.
+
+## Edge cases
+- No path and no description → scaffolds with explicit clarification markers.
+- Path does not exist → falls back to description-only mode.
+- Binary-heavy or empty repos → `inventory` reports zero modules, no crash.
+
+## Files
+See [DOCS.md](DOCS.md) for what every file in this skill does.

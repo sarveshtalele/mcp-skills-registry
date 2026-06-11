@@ -45,15 +45,17 @@ class ExecutionSpec(BaseModel):
     entrypoint: str = "scripts/main.py:run"
     timeout_seconds: int = Field(default=30, ge=1, le=600)
 
-    @field_validator("entrypoint")
+    @field_validator("entrypoint", mode="before")
     @classmethod
-    def _valid_entrypoint(cls, value: str) -> str:
-        if ":" not in value:
-            raise ValueError("entrypoint must be in the form 'path/to/file.py:callable'")
-        path, _, callable_name = value.partition(":")
+    def _coerce_entrypoint(cls, value: object) -> str:
+        """Coerce a malformed entrypoint to the default rather than rejecting."""
+        text = str(value or "").strip()
+        if ":" not in text:
+            return "scripts/main.py:run"
+        path, _, callable_name = text.partition(":")
         if not path.endswith(".py") or not callable_name.isidentifier():
-            raise ValueError("entrypoint must reference a .py file and a valid callable name")
-        return value
+            return "scripts/main.py:run"
+        return text
 
     @property
     def script_path(self) -> str:
@@ -71,7 +73,7 @@ class SkillManifest(BaseModel):
 
     name: str
     version: str = "0.1.0"
-    description: str
+    description: str = ""
     author: str = "unknown"
     license: str = "MIT"
     category: str = "general"
@@ -86,19 +88,20 @@ class SkillManifest(BaseModel):
     docs_url: str | None = None
     repository: str | None = None
 
-    @field_validator("name")
+    @field_validator("name", mode="before")
     @classmethod
-    def _valid_name(cls, value: str) -> str:
-        if not _SLUG_RE.match(value):
-            raise ValueError(f"skill name '{value}' must be a lowercase slug (a-z, 0-9, hyphen)")
-        return value
+    def _coerce_name(cls, value: object) -> str:
+        """Coerce any name into a safe lowercase slug rather than rejecting it."""
+        text = str(value or "").strip().lower()
+        slug = re.sub(r"[^a-z0-9]+", "-", text).strip("-")
+        return slug or "unnamed-skill"
 
-    @field_validator("version")
+    @field_validator("version", mode="before")
     @classmethod
-    def _valid_version(cls, value: str) -> str:
-        if not _SEMVER_RE.match(value):
-            raise ValueError(f"version '{value}' must be semantic (MAJOR.MINOR.PATCH)")
-        return value
+    def _coerce_version(cls, value: object) -> str:
+        """Accept any version; default to 0.0.0 when it is not semantic."""
+        text = str(value or "").strip()
+        return text if _SEMVER_RE.match(text) else (text or "0.0.0")
 
     def to_mcp_input_schema(self) -> dict[str, Any]:
         """Render the inputs as a JSON Schema object for the MCP tool contract."""
@@ -117,6 +120,17 @@ class SkillManifest(BaseModel):
             if param.required:
                 required.append(param.name)
         return {"type": "object", "properties": properties, "required": required}
+
+
+class UploadResult(BaseModel):
+    """Outcome of an upload: what was installed, where, and any advisories."""
+
+    name: str
+    version: str
+    kind: str = "skill"  # "skill" or "agent"
+    installed_files: list[str] = Field(default_factory=list)
+    github_url: str | None = None
+    warnings: list[str] = Field(default_factory=list)
 
 
 class SkillSummary(BaseModel):

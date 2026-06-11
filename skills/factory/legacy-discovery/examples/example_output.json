@@ -1,0 +1,14 @@
+{
+  "spec_markdown": "# Legacy System Specification\\n...",
+  "architecture_markdown": "# As-Is Architecture\\n...",
+  "inventory": {
+    "languages": {
+      "Python": 42,
+      "HTML": 8
+    },
+    "entry_points": [
+      "app.py"
+    ],
+    "module_count": 50
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "legacy-discovery",
+  "description": "Reverse-engineer a legacy application into spec + architecture + inventory.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repo_path": {
+        "type": "string",
+        "description": "Local repo path to scan."
+      },
+      "app_description": {
+        "type": "string",
+        "description": "Description if no path."
+      }
+    },
+    "required": []
+  }
+}
