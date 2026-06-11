@@ -30,6 +30,13 @@ def test_discover_finds_example_skill_and_skips_template(settings):
     assert "my-skill" not in skills  # _template is ignored
 
 
+def test_discover_finds_grouped_skills(settings):
+    """Skills nested in a group folder (skills/speckit/<name>) are discovered."""
+    skills = SkillLoader(settings.resolved_skills_dir).discover()
+    assert "speckit-specify" in skills
+    assert "speckit-tasks" in skills
+
+
 def test_loaded_skill_entrypoint_path(settings):
     skills = SkillLoader(settings.resolved_skills_dir).discover()
     skill = skills["text-statistics"]

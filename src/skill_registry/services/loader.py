@@ -100,8 +100,15 @@ class SkillLoader:
             _logger.warning("Skills directory %s does not exist", self._skills_dir)
             return skills
 
-        for manifest_path in sorted(self._skills_dir.glob(f"*/{_MANIFEST_FILENAME}")):
-            if manifest_path.parent.name.startswith("_"):
+        # Recursive discovery so skills can be organised into group folders
+        # (e.g. skills/speckit/<name>/SKILL.md). A directory is a skill if it
+        # holds a SKILL.md; we do not descend into a skill once found.
+        for manifest_path in sorted(self._skills_dir.rglob(_MANIFEST_FILENAME)):
+            rel_parts = manifest_path.relative_to(self._skills_dir).parts
+            # Skip private folders (e.g. _template) and skills nested inside skills.
+            if any(part.startswith("_") for part in rel_parts):
+                continue
+            if self._is_nested_skill(manifest_path):
                 continue
             try:
                 skill = self.load_one(manifest_path)
@@ -120,3 +127,12 @@ class SkillLoader:
 
         _logger.info("Discovered %d skill(s)", len(skills))
         return skills
+
+    def _is_nested_skill(self, manifest_path: Path) -> bool:
+        """True if a parent directory (within the skills root) also has a SKILL.md."""
+        parent = manifest_path.parent.parent
+        while parent != self._skills_dir and self._skills_dir in parent.parents:
+            if (parent / _MANIFEST_FILENAME).exists():
+                return True
+            parent = parent.parent
+        return False
