@@ -65,12 +65,26 @@ You add capabilities by **adding folders or uploading a ZIP — never by editing
 
 ## 🏗️ Architecture
 
-![Architecture](https://raw.githubusercontent.com/sarveshtalele/mcp-skills-registry/assets/architecture.png)
+```
+        MCP clients                         REST clients
+   (Claude Code / Desktop,            (curl, scripts, the
+    GitHub Copilot, VS Code)            Next.js dashboard)
+            │                                   │
+            ▼  Streamable HTTP                  ▼  /api/v1
+   ┌──────────────────────────────────────────────────────┐
+   │                FastAPI application                    │
+   │  api → mcp → services → repositories → db → models    │
+   │  discovery · validation · sandboxed execution · audit │
+   └──────────────────────────────────────────────────────┘
+            │ discovers + runs                  │ persists
+            ▼                                   ▼
+   skills/ + agents/  (self-contained folders)   SQLite (history, audit)
+```
 
-> Skills and agents live on disk as self-contained folders; the FastAPI server
-> auto-discovers them and exposes each as an MCP tool (Streamable HTTP) and a REST
-> endpoint. Skills run in isolated subprocesses; uploads can auto-publish to GitHub,
-> which redeploys the Hugging Face Space.
+Skills and agents are self-contained folders the FastAPI server auto-discovers and
+exposes as MCP tools (Streamable HTTP) and REST endpoints. Skills run in isolated
+subprocesses with a hard timeout; uploads can auto-publish to GitHub, which
+redeploys the Hugging Face Space.
 
 ---
 
