@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "MCP Skill Registry"
+abstract: >
+  A self-hostable Model Context Protocol (MCP) server that turns folders of
+  skills and agents into tools any MCP client can discover and run.
+authors:
+  - family-names: Talele
+    given-names: Sarvesh
+type: software
+license: MIT
+repository-code: "https://github.com/sarveshtalele/mcp-skills-registry"
+url: "https://sarveshtalele-mcp-skills-registry.hf.space"
+keywords:
+  - mcp
+  - model-context-protocol
+  - skills
+  - agents
+  - llm-tools
+version: "0.2.0"
+date-released: "2026-06-12"

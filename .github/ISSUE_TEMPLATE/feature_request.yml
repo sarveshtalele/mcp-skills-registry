@@ -1,0 +1,33 @@
+name: ✨ Feature Request
+description: Suggest a new skill, agent, integration, or capability.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What are you trying to do that the project doesn't support yet?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - New skill
+        - New agent
+        - New integration
+        - Server / API
+        - UI
+        - Other
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

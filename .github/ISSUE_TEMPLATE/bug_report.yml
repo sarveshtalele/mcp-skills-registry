@@ -1,0 +1,40 @@
+name: 🐛 Bug Report
+description: Report a problem with the registry, a skill, or an agent.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to file a bug report.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Call tool '...'
+        2. With inputs '...'
+        3. See error
+    validations:
+      required: true
+  - type: input
+    id: component
+    attributes:
+      label: Affected component
+      placeholder: "e.g. legacy-discovery skill, MCP transport, upload UI"
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      placeholder: "e.g. 0.2.0 or commit sha"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      render: shell

@@ -16,6 +16,21 @@
 
 ---
 
+## 📖 About
+
+**MCP Skill Registry** is an open-source, self-hostable
+[Model Context Protocol](https://modelcontextprotocol.io) server that turns plain
+folders of **skills** and **agents** into tools any MCP client — Claude Code,
+Claude Desktop, GitHub Copilot — can discover and run. It ships with a curated
+catalogue (spec-driven development, legacy modernization, and ITSM integrations),
+a one-click Hugging Face deployment, and an Apple-inspired upload dashboard.
+
+- **Live demo:** https://sarveshtalele-mcp-skills-registry.hf.space
+- **MCP endpoint:** `https://sarveshtalele-mcp-skills-registry.hf.space/mcp`
+- **License:** MIT · **Status:** active · **Stack:** FastAPI · Pydantic · Next.js
+
+> New here? Jump to [Quick Start](#-quick-start) or [Connect an MCP Client](#-connect-an-mcp-client).
+
 ## 🎯 What It Does
 
 **MCP Skill Registry** is one server that hosts many *skills* and exposes each one as a callable tool.
