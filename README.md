@@ -191,6 +191,20 @@ Agents orchestrate skills through multi-step workflows. Load one in your MCP cli
 
 ---
 
+## 🔌 External Integrations
+
+Skills under `skills/integrations/` call external systems (creds via Space env vars,
+never hard-coded; mutating skills require approval):
+
+| Skill | Creates | Required env vars |
+| --- | --- | --- |
+| `jira-ticket` | a Jira issue | `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` |
+| `servicenow-ticket` | a ServiceNow incident | `SERVICENOW_INSTANCE`, `SERVICENOW_USER`, `SERVICENOW_PASSWORD` |
+
+Add your own connector (Slack, GitHub issues, PagerDuty, …) the same way: a skill
+folder whose `scripts/main.py` reads credentials from the environment and calls the
+target API with the standard library. Missing credentials return a clear error.
+
 ## 🖥️ Dashboard UI
 
 An Apple-inspired **Next.js** dashboard is the landing page (static export built into the image; served by FastAPI). It lets you:
