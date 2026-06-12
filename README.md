@@ -48,6 +48,17 @@ You add capabilities by **adding folders or uploading a ZIP — never by editing
 
 ---
 
+## 🏗️ Architecture
+
+![Architecture](https://raw.githubusercontent.com/sarveshtalele/mcp-skills-registry/assets/architecture.png)
+
+> Skills and agents live on disk as self-contained folders; the FastAPI server
+> auto-discovers them and exposes each as an MCP tool (Streamable HTTP) and a REST
+> endpoint. Skills run in isolated subprocesses; uploads can auto-publish to GitHub,
+> which redeploys the Hugging Face Space.
+
+---
+
 ## ✨ Features
 
 | | Feature | Description |
