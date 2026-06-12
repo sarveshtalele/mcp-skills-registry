@@ -114,3 +114,26 @@ async def test_execute_xquik_trends_plan_clamps_count(registry):
     request = result.output["request"]
     assert request["path"] == "/api/v1/x/trends"
     assert request["query"] == {"woeid": 1, "count": 50}
+
+
+async def test_execute_xquik_normalizes_tweet_lookup_object(registry):
+    result = await registry.execute(
+        "xquik-social-data",
+        {
+            "operation": "tweet_lookup",
+            "tweet_id": "123",
+            "response": {
+                "tweet": {
+                    "id": "123",
+                    "text": "lookup result",
+                    "author": {"username": "alice"},
+                },
+            },
+        },
+    )
+
+    assert result.status is ExecutionStatus.SUCCESS
+    assert result.output is not None
+    assert result.output["summary"] == {"operation": "tweet_lookup", "record_count": 1}
+    assert result.output["records"][0]["id"] == "123"
+    assert result.output["records"][0]["text"] == "lookup result"

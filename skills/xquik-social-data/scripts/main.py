@@ -195,6 +195,16 @@ def _normalize_records(operation: str, response: object) -> tuple[list[dict[str,
         if record is not None:
             return [record], ""
     values = _first_list(response, ("tweets", "items", "results", "data"))
+    if not values:
+        tweet = response.get("tweet")
+        if isinstance(tweet, dict):
+            values = [tweet]
+        elif operation == "tweet_lookup":
+            data = response.get("data")
+            if isinstance(data, dict):
+                values = [data]
+            else:
+                values = [response]
     records = [
         record for record in (_normalize_tweet(value) for value in values) if record is not None
     ]

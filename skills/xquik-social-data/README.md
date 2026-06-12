@@ -13,6 +13,6 @@ records for MCP clients.
 }
 ```
 
-The skill returns a request plan for `GET /api/v1/x/tweets/search`. It also
+The skill returns a request plan for `GET /api/v1/x/tweets/search?q=...`. It also
 normalizes supplied tweet responses into stable fields such as `id`, `text`,
 `author_username`, `created_at`, `url`, and `metrics`.
