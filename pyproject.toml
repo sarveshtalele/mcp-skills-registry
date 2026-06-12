@@ -24,7 +24,7 @@ dependencies = [
 [project.optional-dependencies]
 # Heavy semantic-search stack. Optional so the core server stays lightweight.
 search = [
-    "sentence-transformers>=2.7,<4.0",
+    "sentence-transformers>=2.7,<6.0",
     "numpy>=1.26,<3.0",
 ]
 dev = [
