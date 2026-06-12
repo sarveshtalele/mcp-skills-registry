@@ -186,6 +186,14 @@ def _normalize_records(operation: str, response: object) -> tuple[list[dict[str,
             record for record in (_normalize_trend(value) for value in values) if record is not None
         ]
         return records, ""
+    if operation == "tweet_lookup":
+        tweet = response.get("tweet")
+        nested = response.get("data")
+        if not isinstance(tweet, dict) and isinstance(nested, dict):
+            tweet = nested.get("tweet")
+        record = _normalize_tweet(tweet)
+        if record is not None:
+            return [record], ""
     values = _first_list(response, ("tweets", "items", "results", "data"))
     records = [
         record for record in (_normalize_tweet(value) for value in values) if record is not None
@@ -202,7 +210,7 @@ def _build_tweet_search(inputs: dict[str, Any], base_url: str) -> dict[str, obje
         base_url=base_url,
         path=_TWEET_SEARCH_PATH,
         query={
-            "query": query,
+            "q": query,
             "limit": count,
             "cursor": _clean_string(inputs.get("cursor")),
         },
