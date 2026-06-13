@@ -26,6 +26,7 @@ inputs:
     description: >
       A public github.com URL to clone and analyse (remote mode). Provide this OR
       repo_path, not both.
+    examples: ["https://github.com/pallets/flask"]
   - name: repo_path
     type: string
     required: false

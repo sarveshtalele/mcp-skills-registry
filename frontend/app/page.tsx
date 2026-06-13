@@ -13,7 +13,15 @@ type Skill = {
   updated: number | null;
 };
 type Agent = { name: string; version: string; description: string; skills: string[] };
-type Param = { name: string; type: string; required: boolean; description: string; default?: unknown; enum?: string[] };
+type Param = {
+  name: string;
+  type: string;
+  required: boolean;
+  description: string;
+  default?: unknown;
+  enum?: string[];
+  examples?: unknown[];
+};
 type Manifest = {
   name: string;
   version: string;
@@ -27,7 +35,7 @@ type Manifest = {
   workflow?: { step: string; uses?: string; description?: string }[];
 };
 type Sort = "recent" | "name" | "category";
-type View = "skills" | "agents" | "publish";
+type View = "dashboard" | "skills" | "agents" | "publish";
 
 const RECENT = 7 * 24 * 3600;
 const mcpUrl = () => (typeof window !== "undefined" ? `${window.location.origin}/mcp` : "/mcp");
@@ -99,6 +107,7 @@ export default function Page() {
             onChange={(e) => { setQuery(e.target.value); setView("skills"); }}
           />
           <div className="nav-links">
+            <button className={view === "dashboard" ? "on" : ""} onClick={() => { setView("dashboard"); setDetail(null); }}>Dashboard</button>
             <button className={view === "skills" ? "on" : ""} onClick={() => { setView("skills"); setDetail(null); }}>Skills</button>
             <button className={view === "agents" ? "on" : ""} onClick={() => { setView("agents"); setDetail(null); }}>Agents</button>
             <button className={view === "publish" ? "on" : ""} onClick={() => { setView("publish"); setDetail(null); }}>Publish</button>
@@ -106,16 +115,19 @@ export default function Page() {
         </div>
       </nav>
 
-      {view !== "publish" && (
+      {(view === "skills" || view === "agents") && (
         <header className="hero">
           <span className="eyebrow">One MCP server · {skills.length} tools</span>
           <h1>The marketplace for<br />MCP skills &amp; agents.</h1>
-          <p>Browse, try, and add tools to Claude Code, Claude Desktop, or GitHub Copilot — from a single endpoint.</p>
-          <ConnectBar />
+          <p>Browse, try, and add tools to Claude Code, Claude Desktop, or VS Code — from a single endpoint.</p>
         </header>
       )}
 
       <main className="wrap">
+        {view === "dashboard" && (
+          <Dashboard skills={skills} agents={agents} categories={categories} onOpen={(n) => setDetail({ kind: "skill", name: n })} onBrowse={() => setView("skills")} />
+        )}
+
         {view === "skills" && (
           <>
             <div className="toolbar">
@@ -193,13 +205,111 @@ function CopyBtn({ text }: { text: string }) {
   );
 }
 
-function ConnectBar() {
+function InstallTabs() {
   const url = mcpUrl();
+  const tabs = {
+    "Claude Code": {
+      lang: "bash",
+      code: `claude mcp add --transport http marketplace ${url}`,
+      note: "Run in your terminal, then /mcp in a session to see the tools.",
+    },
+    "Claude Desktop": {
+      lang: "json",
+      code: `// claude_desktop_config.json
+{
+  "mcpServers": {
+    "marketplace": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "${url}"]
+    }
+  }
+}`,
+      note: "Settings → Developer → Edit Config, paste, then restart Claude Desktop.",
+    },
+    "VS Code": {
+      lang: "json",
+      code: `// .vscode/mcp.json
+{
+  "servers": {
+    "marketplace": { "type": "http", "url": "${url}" }
+  }
+}`,
+      note: "Open Copilot Chat in Agent mode; the tools appear under the 🛠 menu.",
+    },
+  };
+  const names = Object.keys(tabs) as (keyof typeof tabs)[];
+  const [active, setActive] = useState<keyof typeof tabs>("Claude Code");
+  const t = tabs[active];
   return (
-    <div className="connect">
-      <span className="dot" /> Add this server to your client
-      <code>{`claude mcp add --transport http marketplace ${url}`}</code>
-      <CopyBtn text={`claude mcp add --transport http marketplace ${url}`} />
+    <div className="install">
+      <div className="install-head">
+        <strong>Add to your client</strong>
+        <div className="install-tabs">
+          {names.map((n) => (
+            <button key={n} className={active === n ? "on" : ""} onClick={() => setActive(n)}>{n}</button>
+          ))}
+        </div>
+      </div>
+      <div className="install-body">
+        <pre className={`snippet-code lang-${t.lang}`}>{t.code}</pre>
+        <CopyBtn text={t.code} />
+      </div>
+      <div className="install-note">{t.note}</div>
+    </div>
+  );
+}
+
+function Dashboard({
+  skills, agents, categories, onOpen, onBrowse,
+}: {
+  skills: Skill[]; agents: Agent[]; categories: string[];
+  onOpen: (name: string) => void; onBrowse: () => void;
+}) {
+  const byCat = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const s of skills) m[s.category] = (m[s.category] ?? 0) + 1;
+    return Object.entries(m).sort((a, b) => b[1] - a[1]);
+  }, [skills]);
+  const recent = useMemo(
+    () => [...skills].sort((a, b) => (b.updated ?? 0) - (a.updated ?? 0)).slice(0, 6),
+    [skills],
+  );
+  return (
+    <div className="dash">
+      <div className="dash-hero">
+        <h1>Dashboard</h1>
+        <p className="muted">Everything connected to your single MCP server.</p>
+      </div>
+      <div className="stat-row">
+        <div className="stat"><div className="n">{skills.length}</div><div className="l">Skills</div></div>
+        <div className="stat"><div className="n">{agents.length}</div><div className="l">Agents</div></div>
+        <div className="stat"><div className="n">{categories.length - 1}</div><div className="l">Categories</div></div>
+        <div className="stat"><div className="n">1</div><div className="l">MCP server</div></div>
+      </div>
+
+      <InstallTabs />
+
+      <div className="dash-cols">
+        <section className="dash-card">
+          <h4>Categories</h4>
+          {byCat.map(([c, n]) => (
+            <div className="bar-row" key={c}>
+              <span className="bar-label">{c}</span>
+              <span className="bar"><span style={{ width: `${(n / skills.length) * 100}%` }} /></span>
+              <span className="bar-n">{n}</span>
+            </div>
+          ))}
+        </section>
+        <section className="dash-card">
+          <h4>Recently updated</h4>
+          {recent.map((s) => (
+            <button className="recent-row" key={s.name} onClick={() => onOpen(s.name)}>
+              <span>{s.name}</span><span className="group-pill">{s.category}</span>
+            </button>
+          ))}
+        </section>
+      </div>
+      <button className="btn primary" onClick={onBrowse}>Browse all skills →</button>
     </div>
   );
 }
@@ -240,11 +350,8 @@ function DetailDrawer({ kind, name, onClose }: { kind: "skill" | "agent"; name: 
 
             <div className="d-sec">
               <h4>Use in your client</h4>
-              <p className="muted">This skill is exposed as the MCP tool <code>{m.name}</code> on the single server below.</p>
-              <div className="snippet">
-                <code>{`claude mcp add --transport http marketplace ${mcpUrl()}`}</code>
-                <CopyBtn text={`claude mcp add --transport http marketplace ${mcpUrl()}`} />
-              </div>
+              <p className="muted">Exposed as the MCP tool <code>{m.name}</code> on the single server below.</p>
+              <InstallTabs />
             </div>
 
             {kind === "skill" && (
@@ -300,7 +407,14 @@ function ParamTable({ params }: { params: Param[] }) {
 }
 
 function TryIt({ name, params }: { name: string; params: Param[] }) {
-  const [vals, setVals] = useState<Record<string, string>>({});
+  // Prefill from each input's first declared example so "Run" works out of the box.
+  const initial: Record<string, string> = {};
+  for (const p of params) {
+    const ex = p.examples?.[0];
+    if (ex !== undefined) initial[p.name] = Array.isArray(ex) ? ex.join(", ") : String(ex);
+    else if (p.default !== undefined && p.default !== null) initial[p.name] = String(p.default);
+  }
+  const [vals, setVals] = useState<Record<string, string>>(initial);
   const [out, setOut] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 

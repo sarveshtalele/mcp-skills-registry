@@ -8,7 +8,9 @@ impact, contract violations, deterministic risk score) as JSON-safe data.
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
@@ -22,22 +24,43 @@ from engine.ownership_parser import OwnershipParser  # noqa: E402
 from engine.risk_scorer import RiskScorer  # noqa: E402
 
 
-def run(inputs: dict) -> dict:
-    """Run change-impact analysis for a set of changed files.
+def _clone(repo_url: str) -> Path:
+    """Shallow-clone a public repo to a temp dir; return its path."""
+    dest = Path(tempfile.mkdtemp(prefix="cia_")) / "repo"
+    subprocess.run(
+        ["git", "clone", "--depth", "1", repo_url, str(dest)],
+        check=True, capture_output=True, text=True, timeout=80,
+    )
+    return dest
 
-    Inputs:
-        repo_path:     repository root to analyse (default ".").
+
+def run(inputs: dict) -> dict:
+    """Run change-impact analysis.
+
+    Inputs (provide a repo source):
+        repo_url:      public git URL to shallow-clone and analyse (web-friendly), OR
+        repo_path:     a local repository root the server can read.
         changed_files: list of changed file paths (relative to the repo).
         base_branch:   base branch for contract comparison (default "main").
     """
-    repo_path = Path(inputs.get("repo_path") or ".").resolve()
+    repo_url = (inputs.get("repo_url") or "").strip()
     base_branch = inputs.get("base_branch") or "main"
     changed = inputs.get("changed_files") or []
     if isinstance(changed, str):
-        changed = [changed]
+        changed = [c.strip() for c in changed.split(",") if c.strip()]
 
-    if not repo_path.exists():
-        raise ValueError(f"repo_path not found: {repo_path}")
+    if repo_url:
+        try:
+            repo_path = _clone(repo_url).resolve()
+        except subprocess.CalledProcessError as exc:
+            raise ValueError(f"could not clone {repo_url}: {exc.stderr.strip()[:200]}") from exc
+    else:
+        repo_path = Path(inputs.get("repo_path") or "").expanduser().resolve()
+        if not inputs.get("repo_path") or not repo_path.is_dir():
+            raise ValueError(
+                "provide 'repo_url' (a public git URL) or 'repo_path' (a local "
+                "directory the server can read)"
+            )
 
     dep_graph = DependencyGraphBuilder(repo_path).build()
     ownership = OwnershipParser(repo_path).parse()

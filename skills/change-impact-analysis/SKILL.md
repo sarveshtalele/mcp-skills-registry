@@ -15,17 +15,25 @@ tags: [sdlc, dependency-analysis, risk, deployment, code-analysis]
 execution:
   type: python-script
   entrypoint: scripts/main.py:run
-  timeout_seconds: 90
+  timeout_seconds: 110
 inputs:
+  - name: repo_url
+    type: string
+    required: false
+    description: >
+      Public git URL to shallow-clone and analyse (use this from the web).
+      Provide repo_url OR repo_path.
+    examples: ["https://github.com/pallets/flask"]
   - name: repo_path
     type: string
     required: false
-    default: "."
-    description: Repository root to analyse.
+    description: A local repository root the server can read (alternative to repo_url).
   - name: changed_files
     type: array
+    items: string
     required: false
-    description: List of changed file paths (relative to the repo root).
+    description: Changed file paths relative to the repo root (comma-separated in the UI).
+    examples: ["src/flask/app.py"]
   - name: base_branch
     type: string
     required: false
