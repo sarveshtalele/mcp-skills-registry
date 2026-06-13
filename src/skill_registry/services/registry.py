@@ -63,7 +63,8 @@ class SkillRegistry:
         installer: SkillInstaller,
         publisher: GitHubPublisher,
         agent_loader: AgentLoader,
-        execution_recorder,
+        execution_repo,
+        audit_repo,
     ) -> None:
         self._settings = settings
         self._loader = loader
@@ -74,9 +75,41 @@ class SkillRegistry:
         self._audit = audit
         self._installer = installer
         self._publisher = publisher
-        self._record_execution = execution_recorder
+        self._execution_repo = execution_repo
+        self._audit_repo = audit_repo
+        self._record_execution = execution_repo.record
         self._skills: dict[str, LoadedSkill] = {}
         self._agents: dict[str, LoadedAgent] = {}
+
+    # --- Metrics ----------------------------------------------------------
+
+    def record_download(self, name: str) -> None:
+        """Log a skill download (for download counts)."""
+        self._audit.record("download", "download", "success", skill_name=name)
+
+    def stats(self) -> dict:
+        """Aggregate registry metrics for the dashboard."""
+        runs = self._execution_repo.counts_by_skill()
+        downloads = self._audit_repo.counts_by_skill("download")
+        names = [s.name for s in self.list_skills()]
+        per_skill = [
+            {"name": n, "runs": runs.get(n, 0), "downloads": downloads.get(n, 0)}
+            for n in names
+        ]
+        per_skill.sort(key=lambda s: (s["downloads"] + s["runs"]), reverse=True)
+        categories: dict[str, int] = {}
+        for s in self.list_skills():
+            categories[s.manifest.category] = categories.get(s.manifest.category, 0) + 1
+        return {
+            "skills": len(names),
+            "agents": len(self._agents),
+            "categories": len(categories),
+            "total_runs": sum(runs.values()),
+            "total_downloads": sum(downloads.values()),
+            "category_breakdown": categories,
+            "popular": per_skill[:6],
+            "per_skill": {s["name"]: s for s in per_skill},
+        }
 
     # --- Catalogue management ---------------------------------------------
 

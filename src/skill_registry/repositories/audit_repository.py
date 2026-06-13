@@ -32,3 +32,15 @@ class AuditRepository:
                 json.dumps(event.metadata),
             ),
         )
+
+    def counts_by_skill(self, event_type: str) -> dict[str, int]:
+        """Return ``{skill_name: count}`` for audit events of a given type."""
+        rows = self._db.query(
+            """
+            SELECT skill_name, COUNT(*) AS n FROM audit_logs
+            WHERE event_type = ? AND skill_name IS NOT NULL
+            GROUP BY skill_name
+            """,
+            (event_type,),
+        )
+        return {r["skill_name"]: int(r["n"]) for r in rows}

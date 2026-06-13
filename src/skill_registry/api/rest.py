@@ -48,11 +48,18 @@ async def download_skill(name: str, registry: SkillRegistry = Depends(get_regist
         data = registry.package_skill(name)
     except SkillNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    registry.record_download(name)
     return Response(
         content=data,
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{name}.zip"'},
     )
+
+
+@router.get("/stats")
+async def stats(registry: SkillRegistry = Depends(get_registry)) -> dict:
+    """Aggregate registry metrics (counts, downloads, runs, popular skills)."""
+    return registry.stats()
 
 
 @router.post("/skills/{name}/execute", response_model=ExecutionResult)

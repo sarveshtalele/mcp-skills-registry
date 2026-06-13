@@ -34,7 +34,8 @@ class Container:
 def build_container(settings: Settings) -> Container:
     """Construct the registry and MCP handler from configuration."""
     database = Database(settings.resolved_db_path)
-    audit = AuditService(AuditRepository(database))
+    audit_repo = AuditRepository(database)
+    audit = AuditService(audit_repo)
     execution_repo = ExecutionRepository(database)
 
     registry = SkillRegistry(
@@ -47,7 +48,8 @@ def build_container(settings: Settings) -> Container:
         installer=SkillInstaller(settings),
         publisher=GitHubPublisher(settings),
         agent_loader=AgentLoader(settings.resolved_agents_dir),
-        execution_recorder=execution_repo.record,
+        execution_repo=execution_repo,
+        audit_repo=audit_repo,
     )
     registry.reload()
 

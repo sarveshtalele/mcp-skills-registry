@@ -40,10 +40,19 @@ type View = "dashboard" | "skills" | "agents" | "publish";
 const RECENT = 7 * 24 * 3600;
 const mcpUrl = () => (typeof window !== "undefined" ? `${window.location.origin}/mcp` : "/mcp");
 
+type Stats = {
+  skills: number; agents: number; categories: number;
+  total_runs: number; total_downloads: number;
+  category_breakdown: Record<string, number>;
+  popular: { name: string; runs: number; downloads: number }[];
+  per_skill: Record<string, { name: string; runs: number; downloads: number }>;
+};
+
 export default function Page() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [view, setView] = useState<View>("skills");
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [view, setView] = useState<View>("dashboard");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState<Sort>("recent");
@@ -51,12 +60,14 @@ export default function Page() {
 
   async function refresh() {
     try {
-      const [s, a] = await Promise.all([
+      const [s, a, st] = await Promise.all([
         fetch(`${API}/skills?limit=200`).then((r) => r.json()),
         fetch(`${API}/agents`).then((r) => r.json()),
+        fetch(`${API}/stats`).then((r) => r.json()),
       ]);
       setSkills(Array.isArray(s) ? s : []);
       setAgents(Array.isArray(a) ? a : []);
+      setStats(st && typeof st === "object" ? st : null);
     } catch {
       /* waking up */
     }
@@ -125,7 +136,7 @@ export default function Page() {
 
       <main className="wrap">
         {view === "dashboard" && (
-          <Dashboard skills={skills} agents={agents} categories={categories} onOpen={(n) => setDetail({ kind: "skill", name: n })} onBrowse={() => setView("skills")} />
+          <Dashboard stats={stats} skills={skills} agents={agents} onOpen={(n) => setDetail({ kind: "skill", name: n })} onBrowse={() => setView("skills")} />
         )}
 
         {view === "skills" && (
@@ -157,7 +168,11 @@ export default function Page() {
                     {s.updated && now - s.updated < RECENT && <span className="new">NEW</span>}
                   </div>
                   <p>{s.description}</p>
-                  <div className="tags">{s.tags?.slice(0, 4).map((t) => <span className="tag" key={t}>{t}</span>)}</div>
+                  <div className="tags">{s.tags?.slice(0, 3).map((t) => <span className="tag" key={t}>{t}</span>)}</div>
+                  <div className="card-stats">
+                    <span>⬇ {stats?.per_skill[s.name]?.downloads ?? 0}</span>
+                    <span>▶ {stats?.per_skill[s.name]?.runs ?? 0}</span>
+                  </div>
                 </button>
               ))}
               {visible.length === 0 && <p className="muted">No skills match your filters.</p>}
@@ -205,18 +220,17 @@ function CopyBtn({ text }: { text: string }) {
   );
 }
 
-function InstallTabs() {
-  const url = mcpUrl();
-  const tabs = {
-    "Claude Code": {
-      lang: "bash",
-      code: `claude mcp add --transport http marketplace ${url}`,
-      note: "Run in your terminal, then /mcp in a session to see the tools.",
-    },
-    "Claude Desktop": {
-      lang: "json",
-      code: `// claude_desktop_config.json
-{
+const CLIENTS = (url: string) => [
+  {
+    key: "code", icon: "⌘", name: "Claude Code", tagline: "One command in your terminal",
+    primary: `claude mcp add --transport http marketplace ${url}`,
+    config: `claude mcp add --transport http marketplace ${url}`,
+    note: "Run it, then type /mcp in a session.",
+  },
+  {
+    key: "desktop", icon: "🖥", name: "Claude Desktop", tagline: "Add as a connector",
+    primary: url,
+    config: `{
   "mcpServers": {
     "marketplace": {
       "command": "npx",
@@ -224,92 +238,134 @@ function InstallTabs() {
     }
   }
 }`,
-      note: "Settings → Developer → Edit Config, paste, then restart Claude Desktop.",
-    },
-    "VS Code": {
-      lang: "json",
-      code: `// .vscode/mcp.json
-{
+    note: "Settings → Developer → Edit Config → paste → restart.",
+  },
+  {
+    key: "vscode", icon: "</>", name: "VS Code", tagline: "Copilot agent mode",
+    primary: url,
+    config: `{
   "servers": {
     "marketplace": { "type": "http", "url": "${url}" }
   }
 }`,
-      note: "Open Copilot Chat in Agent mode; the tools appear under the 🛠 menu.",
-    },
-  };
-  const names = Object.keys(tabs) as (keyof typeof tabs)[];
-  const [active, setActive] = useState<keyof typeof tabs>("Claude Code");
-  const t = tabs[active];
+    note: "Save as .vscode/mcp.json, open Copilot in Agent mode.",
+  },
+];
+
+function ConnectorCards() {
+  const url = mcpUrl();
+  const [open, setOpen] = useState<string | null>(null);
   return (
-    <div className="install">
-      <div className="install-head">
-        <strong>Add to your client</strong>
-        <div className="install-tabs">
-          {names.map((n) => (
-            <button key={n} className={active === n ? "on" : ""} onClick={() => setActive(n)}>{n}</button>
-          ))}
+    <div className="connectors">
+      {CLIENTS(url).map((c) => (
+        <div className="conn-card" key={c.key}>
+          <div className="conn-icon">{c.icon}</div>
+          <div className="conn-name">{c.name}</div>
+          <div className="conn-tag">{c.tagline}</div>
+          <div className="conn-actions">
+            <CopyBtn text={c.config} />
+            <button className="conn-toggle" onClick={() => setOpen(open === c.key ? null : c.key)}>
+              {open === c.key ? "Hide config" : "View config"}
+            </button>
+          </div>
+          {open === c.key && <pre className="snippet-code">{c.config}</pre>}
+          <div className="conn-note">{c.note}</div>
         </div>
-      </div>
-      <div className="install-body">
-        <pre className={`snippet-code lang-${t.lang}`}>{t.code}</pre>
-        <CopyBtn text={t.code} />
-      </div>
-      <div className="install-note">{t.note}</div>
+      ))}
     </div>
   );
 }
 
 function Dashboard({
-  skills, agents, categories, onOpen, onBrowse,
+  stats, skills, agents, onOpen, onBrowse,
 }: {
-  skills: Skill[]; agents: Agent[]; categories: string[];
+  stats: Stats | null; skills: Skill[]; agents: Agent[];
   onOpen: (name: string) => void; onBrowse: () => void;
 }) {
-  const byCat = useMemo(() => {
-    const m: Record<string, number> = {};
-    for (const s of skills) m[s.category] = (m[s.category] ?? 0) + 1;
-    return Object.entries(m).sort((a, b) => b[1] - a[1]);
-  }, [skills]);
+  const cats = stats ? Object.entries(stats.category_breakdown).sort((a, b) => b[1] - a[1]) : [];
+  const maxCat = cats.length ? Math.max(...cats.map(([, n]) => n)) : 1;
   const recent = useMemo(
     () => [...skills].sort((a, b) => (b.updated ?? 0) - (a.updated ?? 0)).slice(0, 6),
     [skills],
   );
+  const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`);
+
   return (
     <div className="dash">
-      <div className="dash-hero">
-        <h1>Dashboard</h1>
-        <p className="muted">Everything connected to your single MCP server.</p>
-      </div>
-      <div className="stat-row">
-        <div className="stat"><div className="n">{skills.length}</div><div className="l">Skills</div></div>
-        <div className="stat"><div className="n">{agents.length}</div><div className="l">Agents</div></div>
-        <div className="stat"><div className="n">{categories.length - 1}</div><div className="l">Categories</div></div>
-        <div className="stat"><div className="n">1</div><div className="l">MCP server</div></div>
+      {/* Product hero */}
+      <section className="home-hero">
+        <span className="eyebrow">Model Context Protocol · Marketplace</span>
+        <h1>One server.<br />Every skill your agent needs.</h1>
+        <p>Connect once and your client gets {stats?.skills ?? skills.length} ready-to-run tools — spec-driven development, code analysis, modernization, and integrations.</p>
+        <div className="home-cta">
+          <button className="btn primary" onClick={onBrowse}>Explore skills</button>
+          <a className="btn ghost" href="#connect">Connect a client</a>
+        </div>
+      </section>
+
+      {/* Metric tiles */}
+      <div className="metrics">
+        <Metric n={fmt(stats?.total_downloads ?? 0)} label="Downloads" icon="⬇" />
+        <Metric n={fmt(stats?.total_runs ?? 0)} label="Runs" icon="▶" />
+        <Metric n={`${stats?.skills ?? skills.length}`} label="Skills" icon="🧩" />
+        <Metric n={`${stats?.agents ?? agents.length}`} label="Agents" icon="🤖" />
+        <Metric n={`${stats?.categories ?? 0}`} label="Categories" icon="🗂" />
       </div>
 
-      <InstallTabs />
+      {/* Connect */}
+      <section id="connect" className="home-sec">
+        <h3>Add to your client</h3>
+        <p className="muted">Pick your tool — copy the connector, you're live in seconds.</p>
+        <ConnectorCards />
+      </section>
 
+      {/* Popular + categories */}
       <div className="dash-cols">
         <section className="dash-card">
-          <h4>Categories</h4>
-          {byCat.map(([c, n]) => (
+          <h4>Popular skills</h4>
+          {(stats?.popular ?? []).map((p, i) => (
+            <button className="rank-row" key={p.name} onClick={() => onOpen(p.name)}>
+              <span className="rank">{i + 1}</span>
+              <span className="rank-name">{p.name}</span>
+              <span className="rank-stat">⬇ {p.downloads} · ▶ {p.runs}</span>
+            </button>
+          ))}
+          {!stats?.popular?.length && <p className="muted">No activity yet — be the first to run a skill.</p>}
+        </section>
+        <section className="dash-card">
+          <h4>By category</h4>
+          {cats.map(([c, n]) => (
             <div className="bar-row" key={c}>
               <span className="bar-label">{c}</span>
-              <span className="bar"><span style={{ width: `${(n / skills.length) * 100}%` }} /></span>
+              <span className="bar"><span style={{ width: `${(n / maxCat) * 100}%` }} /></span>
               <span className="bar-n">{n}</span>
             </div>
           ))}
         </section>
-        <section className="dash-card">
-          <h4>Recently updated</h4>
+      </div>
+
+      <section className="home-sec">
+        <h4>Recently updated</h4>
+        <div className="grid">
           {recent.map((s) => (
-            <button className="recent-row" key={s.name} onClick={() => onOpen(s.name)}>
-              <span>{s.name}</span><span className="group-pill">{s.category}</span>
+            <button className="card" key={s.name} onClick={() => onOpen(s.name)}>
+              <div className="top"><h3>{s.name}</h3><span className="ver">v{s.version}</span></div>
+              <div className="meta"><span className="group-pill">{s.category}</span></div>
+              <p>{s.description}</p>
             </button>
           ))}
-        </section>
-      </div>
-      <button className="btn primary" onClick={onBrowse}>Browse all skills →</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function Metric({ n, label, icon }: { n: string; label: string; icon: string }) {
+  return (
+    <div className="metric">
+      <div className="metric-icon">{icon}</div>
+      <div className="metric-n">{n}</div>
+      <div className="metric-l">{label}</div>
     </div>
   );
 }
@@ -351,7 +407,7 @@ function DetailDrawer({ kind, name, onClose }: { kind: "skill" | "agent"; name: 
             <div className="d-sec">
               <h4>Use in your client</h4>
               <p className="muted">Exposed as the MCP tool <code>{m.name}</code> on the single server below.</p>
-              <InstallTabs />
+              <ConnectorCards />
             </div>
 
             {kind === "skill" && (

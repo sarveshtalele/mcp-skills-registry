@@ -37,3 +37,10 @@ class ExecutionRepository:
             "SELECT COUNT(*) AS n FROM executions WHERE skill_name = ?", (skill_name,)
         )
         return int(rows[0]["n"]) if rows else 0
+
+    def counts_by_skill(self) -> dict[str, int]:
+        """Return ``{skill_name: execution_count}`` across all skills."""
+        rows = self._db.query(
+            "SELECT skill_name, COUNT(*) AS n FROM executions GROUP BY skill_name"
+        )
+        return {r["skill_name"]: int(r["n"]) for r in rows}

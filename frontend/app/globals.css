@@ -130,30 +130,44 @@ code { font-family: "SF Mono", ui-monospace, Menlo, monospace; }
 .tree { list-style: none; padding: 0; margin: 0 0 12px; }
 .tree code { background: #f5f5f7; padding: 2px 8px; border-radius: 8px; font-size: 13px; }
 
-/* Install tabs (Claude Code / Desktop / VS Code) */
-.install { max-width: 760px; margin: 26px auto 0; background: var(--panel); border: 1px solid var(--line);
-  border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; text-align: left; }
-.install-head { display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 14px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-.install-head strong { font-size: 14px; }
-.install-tabs { display: inline-flex; background: #f0f0f3; border-radius: 980px; padding: 3px; }
-.install-tabs button { border: none; background: transparent; color: var(--muted); font-weight: 600;
-  font-size: 13px; padding: 6px 14px; border-radius: 980px; cursor: pointer; }
-.install-tabs button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
-.install-body { display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px; }
-.snippet-code { flex: 1; margin: 0; background: #1d1d1f; color: #e7e7ea; border-radius: 10px;
-  padding: 14px 16px; font-size: 13px; line-height: 1.5; overflow-x: auto;
+.snippet-code { margin: 10px 0 0; background: #1d1d1f; color: #e7e7ea; border-radius: 10px;
+  padding: 14px 16px; font-size: 12.5px; line-height: 1.5; overflow-x: auto;
   font-family: "SF Mono", ui-monospace, Menlo, monospace; white-space: pre; }
-.install-note { padding: 0 16px 14px; color: var(--muted); font-size: 13px; }
 
-/* Dashboard */
-.dash { padding-top: 28px; }
-.dash-hero h1 { font-size: 34px; letter-spacing: -.02em; margin: 0; }
-.stat-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 22px 0; }
-.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px 26px;
-  min-width: 120px; box-shadow: var(--shadow); }
-.stat .n { font-size: 30px; font-weight: 700; }
-.stat .l { color: var(--muted); font-size: 13px; }
+/* Connector cards (client mockups) */
+.connectors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+.conn-card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
+  padding: 22px; box-shadow: var(--shadow); text-align: left; }
+.conn-icon { width: 46px; height: 46px; display: grid; place-items: center; font-size: 22px;
+  background: linear-gradient(180deg,#fff7ea,#ffe9c7); border: 1px solid var(--line); border-radius: 13px; }
+.conn-name { font-weight: 650; font-size: 16px; margin-top: 14px; }
+.conn-tag { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.conn-actions { display: flex; gap: 8px; margin-top: 14px; }
+.conn-toggle { border: 1px solid var(--line); background: #fff; border-radius: 980px;
+  padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--muted); }
+.conn-toggle:hover { border-color: var(--amber); color: var(--ink); }
+.conn-note { color: var(--muted); font-size: 12.5px; margin-top: 12px; }
+
+/* Home (dashboard) */
+.dash { padding-top: 22px; }
+.home-hero { text-align: center; padding: 30px 16px 10px; }
+.home-hero .eyebrow { display: inline-block; font-size: 13px; font-weight: 600; color: var(--amber-d);
+  background: #fff7ea; border: 1px solid var(--line); padding: 6px 14px; border-radius: 980px; }
+.home-hero h1 { font-size: 46px; line-height: 1.05; font-weight: 700; letter-spacing: -.03em; margin: 16px 0 0; }
+.home-hero p { color: var(--muted); font-size: 18px; max-width: 620px; margin: 14px auto 0; }
+.home-cta { display: flex; gap: 12px; justify-content: center; margin-top: 22px; }
+.home-sec { margin-top: 44px; }
+.home-sec h3 { font-size: 22px; letter-spacing: -.02em; margin: 0; }
+.home-sec h4 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 14px; }
+
+/* Metric tiles */
+.metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin: 30px 0; }
+.metric { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px;
+  box-shadow: var(--shadow); text-align: center; }
+.metric-icon { font-size: 18px; }
+.metric-n { font-size: 30px; font-weight: 700; letter-spacing: -.02em; margin-top: 4px; }
+.metric-l { color: var(--muted); font-size: 13px; }
+
 .dash-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
 .dash-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 20px; box-shadow: var(--shadow); }
@@ -163,11 +177,25 @@ code { font-family: "SF Mono", ui-monospace, Menlo, monospace; }
 .bar { flex: 1; height: 8px; background: #f0f0f3; border-radius: 980px; overflow: hidden; }
 .bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--amber), var(--amber-d)); }
 .bar-n { width: 24px; text-align: right; color: var(--muted); }
-.recent-row { display: flex; align-items: center; justify-content: space-between; width: 100%;
-  border: none; background: transparent; padding: 9px 0; border-bottom: 1px solid var(--line);
-  cursor: pointer; font: inherit; color: var(--ink); }
-.recent-row:hover { color: var(--amber-d); }
+.rank-row { display: flex; align-items: center; gap: 12px; width: 100%; border: none;
+  background: transparent; padding: 9px 0; border-bottom: 1px solid var(--line); cursor: pointer;
+  font: inherit; color: var(--ink); text-align: left; }
+.rank-row:hover .rank-name { color: var(--amber-d); }
+.rank { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%;
+  background: #f0f0f3; font-size: 12px; font-weight: 700; color: var(--muted); }
+.rank-name { flex: 1; font-weight: 600; }
+.rank-stat { color: var(--muted); font-size: 12.5px; }
+
+/* card download/run counts */
+.card-stats { display: flex; gap: 14px; margin-top: 12px; color: var(--muted); font-size: 12.5px; }
 
 .foot { text-align: center; color: var(--muted); font-size: 13px; margin-top: 56px; }
-@media (max-width: 640px) { .dash-cols { grid-template-columns: 1fr; } }
+@media (max-width: 860px) {
+  .connectors { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .dash-cols { grid-template-columns: 1fr; }
+  .home-hero h1 { font-size: 34px; }
+}
 @media (max-width: 560px) { .hero h1 { font-size: 36px; } .tryform { grid-template-columns: 1fr; } }
