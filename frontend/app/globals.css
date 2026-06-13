@@ -173,6 +173,8 @@ code { font-family: "SF Mono", ui-monospace, Menlo, monospace; }
   padding: 20px; box-shadow: var(--shadow); }
 .dash-card h4 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 14px; }
 .bar-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 13px; }
+.bar-click { width: 100%; border: none; background: transparent; cursor: pointer; font: inherit; padding: 4px 0; text-align: left; }
+.bar-click:hover .bar-label { color: var(--amber-d); }
 .bar-label { width: 150px; text-transform: capitalize; color: var(--ink); }
 .bar { flex: 1; height: 8px; background: #f0f0f3; border-radius: 980px; overflow: hidden; }
 .bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--amber), var(--amber-d)); }

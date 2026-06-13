@@ -168,11 +168,7 @@ export default function Page() {
                     {s.updated && now - s.updated < RECENT && <span className="new">NEW</span>}
                   </div>
                   <p>{s.description}</p>
-                  <div className="tags">{s.tags?.slice(0, 3).map((t) => <span className="tag" key={t}>{t}</span>)}</div>
-                  <div className="card-stats">
-                    <span>⬇ {stats?.per_skill[s.name]?.downloads ?? 0}</span>
-                    <span>▶ {stats?.per_skill[s.name]?.runs ?? 0}</span>
-                  </div>
+                  <div className="tags">{s.tags?.slice(0, 4).map((t) => <span className="tag" key={t}>{t}</span>)}</div>
                 </button>
               ))}
               {visible.length === 0 && <p className="muted">No skills match your filters.</p>}
@@ -288,7 +284,6 @@ function Dashboard({
     () => [...skills].sort((a, b) => (b.updated ?? 0) - (a.updated ?? 0)).slice(0, 6),
     [skills],
   );
-  const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`);
 
   return (
     <div className="dash">
@@ -305,11 +300,10 @@ function Dashboard({
 
       {/* Metric tiles */}
       <div className="metrics">
-        <Metric n={fmt(stats?.total_downloads ?? 0)} label="Downloads" icon="⬇" />
-        <Metric n={fmt(stats?.total_runs ?? 0)} label="Runs" icon="▶" />
         <Metric n={`${stats?.skills ?? skills.length}`} label="Skills" icon="🧩" />
         <Metric n={`${stats?.agents ?? agents.length}`} label="Agents" icon="🤖" />
-        <Metric n={`${stats?.categories ?? 0}`} label="Categories" icon="🗂" />
+        <Metric n={`${stats?.categories ?? cats.length}`} label="Categories" icon="🗂" />
+        <Metric n="1" label="MCP server" icon="🔌" />
       </div>
 
       {/* Connect */}
@@ -319,30 +313,19 @@ function Dashboard({
         <ConnectorCards />
       </section>
 
-      {/* Popular + categories */}
-      <div className="dash-cols">
-        <section className="dash-card">
-          <h4>Popular skills</h4>
-          {(stats?.popular ?? []).map((p, i) => (
-            <button className="rank-row" key={p.name} onClick={() => onOpen(p.name)}>
-              <span className="rank">{i + 1}</span>
-              <span className="rank-name">{p.name}</span>
-              <span className="rank-stat">⬇ {p.downloads} · ▶ {p.runs}</span>
-            </button>
-          ))}
-          {!stats?.popular?.length && <p className="muted">No activity yet — be the first to run a skill.</p>}
-        </section>
-        <section className="dash-card">
-          <h4>By category</h4>
+      {/* Categories */}
+      <section className="home-sec">
+        <h4>By category</h4>
+        <div className="dash-card">
           {cats.map(([c, n]) => (
-            <div className="bar-row" key={c}>
+            <button className="bar-row bar-click" key={c} onClick={() => onBrowse()}>
               <span className="bar-label">{c}</span>
               <span className="bar"><span style={{ width: `${(n / maxCat) * 100}%` }} /></span>
               <span className="bar-n">{n}</span>
-            </div>
+            </button>
           ))}
-        </section>
-      </div>
+        </div>
+      </section>
 
       <section className="home-sec">
         <h4>Recently updated</h4>
