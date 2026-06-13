@@ -93,8 +93,7 @@ class SkillRegistry:
         downloads = self._audit_repo.counts_by_skill("download")
         names = [s.name for s in self.list_skills()]
         per_skill = [
-            {"name": n, "runs": runs.get(n, 0), "downloads": downloads.get(n, 0)}
-            for n in names
+            {"name": n, "runs": runs.get(n, 0), "downloads": downloads.get(n, 0)} for n in names
         ]
         per_skill.sort(key=lambda s: (s["downloads"] + s["runs"]), reverse=True)
         categories: dict[str, int] = {}
