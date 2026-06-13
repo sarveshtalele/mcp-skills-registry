@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
-from skill_registry.api.deps import get_registry
+from skill_registry.api.deps import get_registry, require_admin
 from skill_registry.errors import ManifestError, SkillNotFoundError
 from skill_registry.models import (
     AgentManifest,
@@ -56,7 +56,12 @@ async def execute_skill(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/skills/upload", response_model=UploadResult, status_code=201)
+@router.post(
+    "/skills/upload",
+    response_model=UploadResult,
+    status_code=201,
+    dependencies=[Depends(require_admin)],
+)
 async def upload_skill(
     file: UploadFile = File(..., description="A .zip archive containing SKILL.md"),
     overwrite: bool = Query(True, description="Replace an existing skill of the same name"),
@@ -76,7 +81,7 @@ async def upload_skill(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.delete("/skills/{name}", status_code=204)
+@router.delete("/skills/{name}", status_code=204, dependencies=[Depends(require_admin)])
 async def delete_skill(name: str, registry: SkillRegistry = Depends(get_registry)) -> None:
     """Delete a skill from the registry."""
     try:
@@ -100,7 +105,12 @@ async def get_agent(name: str, registry: SkillRegistry = Depends(get_registry)) 
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/agents/upload", response_model=UploadResult, status_code=201)
+@router.post(
+    "/agents/upload",
+    response_model=UploadResult,
+    status_code=201,
+    dependencies=[Depends(require_admin)],
+)
 async def upload_agent(
     file: UploadFile = File(..., description="A .zip archive containing AGENT.md"),
     overwrite: bool = Query(True),
@@ -114,7 +124,7 @@ async def upload_agent(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.delete("/agents/{name}", status_code=204)
+@router.delete("/agents/{name}", status_code=204, dependencies=[Depends(require_admin)])
 async def delete_agent(name: str, registry: SkillRegistry = Depends(get_registry)) -> None:
     """Delete an agent from the registry."""
     try:
@@ -147,7 +157,7 @@ async def validate_agent(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-@router.post("/admin/reload")
+@router.post("/admin/reload", dependencies=[Depends(require_admin)])
 async def reload_catalogue(registry: SkillRegistry = Depends(get_registry)) -> dict:
     """Re-scan the skills directory (useful after adding a skill)."""
     count = registry.reload()

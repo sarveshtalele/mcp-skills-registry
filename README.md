@@ -351,7 +351,9 @@ curl -X POST http://localhost:7860/mcp \
 
 ## 🧰 REST API
 
-Every skill is reachable without MCP. Interactive Swagger UI is served at `/docs`.
+Every skill is reachable without MCP. Interactive API docs (`/docs`, `/redoc`,
+`/openapi.json`) are **disabled by default** for safety — enable with
+`SKILLREG_ENABLE_DOCS=true` in trusted environments.
 
 | Method & Path | Description |
 |---|---|

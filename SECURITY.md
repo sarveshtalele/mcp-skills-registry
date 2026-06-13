@@ -28,11 +28,20 @@ once the report is triaged.
 
 - **Sandboxed execution** — skills run in isolated subprocesses with a hard
   timeout and an output-size cap; a misbehaving skill cannot hang or crash the server.
+- **Secret isolation** — skill subprocesses receive a **scrubbed environment**:
+  only base-safe vars + an explicit allow-list (`SKILLREG_SKILL_ENV_ALLOWLIST`,
+  e.g. integration creds). The server's own secrets (`SKILLREG_GITHUB_TOKEN`, HF
+  tokens, admin token) are **never** exposed to skill code.
 - **Upload safety** — uploaded archives are validated and guarded against
   path traversal (zip-slip) and decompression bombs; uploads can be disabled with
   `SKILLREG_ENABLE_UPLOADS=false`.
-- **Secrets** — integration skills read credentials from environment variables
-  only; never hard-code secrets. Configure them as Hugging Face Space secrets.
+- **Authenticated mutations** — set `SKILLREG_ADMIN_TOKEN` to require an
+  `X-Admin-Token` header on upload / delete / reload. Without it those endpoints
+  are open (a startup warning is logged) — **always set it in production**.
+- **Hidden API schema** — `/docs`, `/redoc`, `/openapi.json` are **off by default**
+  (`SKILLREG_ENABLE_DOCS=false`).
+- **CORS** — configurable via `SKILLREG_CORS_ALLOW_ORIGINS` (tighten from `*`).
+- **Input cap** — execute payloads are bounded by `SKILLREG_MAX_INPUT_BYTES`.
 - **No secrets in the repo** — `.env` is gitignored; only `.env.example` ships.
 
 ## Hardening Recommendations for Operators

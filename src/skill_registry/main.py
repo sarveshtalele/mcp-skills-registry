@@ -29,6 +29,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        if settings.enable_uploads and not settings.admin_token:
+            _logger.warning(
+                "Uploads are ENABLED with no SKILLREG_ADMIN_TOKEN set — mutating "
+                "endpoints (upload/delete/reload) are unauthenticated. Set an admin "
+                "token or disable uploads in production."
+            )
         _logger.info(
             "%s v%s ready with %d skill(s)",
             settings.title,
@@ -37,11 +43,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         yield
 
+    # Interactive docs/schema are hidden unless explicitly enabled.
+    docs_kwargs: dict = (
+        {} if settings.enable_docs else {"docs_url": None, "redoc_url": None, "openapi_url": None}
+    )
     app = FastAPI(
         title=settings.title,
         version=settings.version,
         description="Discover and execute community MCP skills.",
         lifespan=lifespan,
+        **docs_kwargs,
     )
     app.state.settings = container.settings
     app.state.registry = container.registry
@@ -50,8 +61,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
+        allow_origins=settings.cors_origin_list,
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
     app.include_router(health.router)

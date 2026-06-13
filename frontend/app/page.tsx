@@ -128,7 +128,7 @@ export default function Page() {
         )}
 
         <div className="foot">
-          MCP endpoint: <code>/mcp</code> · API docs: <a href="/docs">/docs</a>
+          MCP endpoint: <code>/mcp</code> · REST API: <code>/api/v1</code>
         </div>
       </main>
     </>

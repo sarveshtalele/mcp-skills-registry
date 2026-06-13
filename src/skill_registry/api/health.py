@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from skill_registry import __version__
 from skill_registry.api.deps import get_registry
@@ -12,20 +12,23 @@ router = APIRouter(tags=["meta"])
 
 
 @router.get("/info")
-async def index(registry: SkillRegistry = Depends(get_registry)) -> dict:
+async def index(request: Request, registry: SkillRegistry = Depends(get_registry)) -> dict:
     """Service metadata and entry points (the root path serves the upload UI)."""
+    endpoints = {
+        "mcp": "/mcp",
+        "skills": "/api/v1/skills",
+        "agents": "/api/v1/agents",
+        "upload_ui": "/",
+        "health": "/health",
+        "info": "/info",
+    }
+    if request.app.state.settings.enable_docs:
+        endpoints["docs"] = "/docs"
     return {
         "name": "MCP Skill Registry",
         "version": __version__,
         "skills_loaded": len(registry.list_skills()),
-        "endpoints": {
-            "mcp": "/mcp",
-            "skills": "/api/v1/skills",
-            "upload_ui": "/",
-            "docs": "/docs",
-            "health": "/health",
-            "info": "/info",
-        },
+        "endpoints": endpoints,
     }
 
 

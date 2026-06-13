@@ -6,6 +6,7 @@ execution, search, persistence, and auditing.
 
 from __future__ import annotations
 
+import json
 import shutil
 
 from skill_registry.config import Settings
@@ -239,6 +240,17 @@ class SkillRegistry:
     ) -> ExecutionResult:
         """Validate inputs and execute a skill, recording the outcome."""
         skill = self.get(name)
+
+        # Reject oversized input payloads before doing any work.
+        if len(json.dumps(inputs, default=str)) > self._settings.max_input_bytes:
+            result = ExecutionResult(
+                execution_id="exec_invalid",
+                skill_name=name,
+                status=ExecutionStatus.INVALID_INPUT,
+                error="input payload exceeds the maximum allowed size",
+            )
+            self._persist(result, version, user_id)
+            return result
 
         try:
             normalised = self._validator.validate(skill.manifest, inputs)

@@ -29,6 +29,24 @@ class Settings(BaseSettings):
     port: int = 7860
     log_level: str = "INFO"
 
+    # --- API exposure / hardening ---
+    # Interactive API docs (/docs, /redoc, /openapi.json) are OFF by default so the
+    # schema isn't public. Enable explicitly in trusted/dev environments.
+    enable_docs: bool = False
+    # CORS allowed origins, comma-separated ("*" = any). Tighten in production.
+    cors_allow_origins: str = "*"
+    # Admin token gating mutating endpoints (upload/delete/reload). When set, those
+    # endpoints require header `X-Admin-Token: <token>`. Empty = open (logs a warning).
+    admin_token: str = ""
+    # Max bytes of JSON inputs accepted by an execute request.
+    max_input_bytes: int = 256_000
+    # Env var names a skill subprocess is allowed to see (e.g. integration creds).
+    # The server's own secrets are NEVER exposed regardless of this list.
+    skill_env_allowlist: str = (
+        "JIRA_BASE_URL,JIRA_EMAIL,JIRA_API_TOKEN,"
+        "SERVICENOW_INSTANCE,SERVICENOW_USER,SERVICENOW_PASSWORD"
+    )
+
     # --- Paths ---
     skills_dir: Path = Path("skills")
     agents_dir: Path = Path("agents")
@@ -59,6 +77,16 @@ class Settings(BaseSettings):
     def github_publish_enabled(self) -> bool:
         """True when GitHub auto-publish is configured."""
         return bool(self.github_token and self.github_repo)
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        """Parsed CORS origins."""
+        return [o.strip() for o in self.cors_allow_origins.split(",") if o.strip()] or ["*"]
+
+    @property
+    def skill_env_allow(self) -> set[str]:
+        """Set of env var names a skill subprocess may receive."""
+        return {n.strip() for n in self.skill_env_allowlist.split(",") if n.strip()}
 
     # --- Semantic search (optional) ---
     enable_semantic_search: bool = False

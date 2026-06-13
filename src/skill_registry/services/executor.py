@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import sys
 import time
 import uuid
@@ -22,6 +23,24 @@ from skill_registry.services.loader import LoadedSkill
 
 _logger = get_logger(__name__)
 _RUNNER = Path(__file__).with_name("_runner.py")
+
+# Base environment variables a skill subprocess is allowed to inherit. The
+# server's own secrets (SKILLREG_*, GitHub/HF tokens, etc.) are deliberately
+# excluded so untrusted uploaded skills cannot read or exfiltrate them.
+_SAFE_ENV_VARS = (
+    "PATH",
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "LC_CTYPE",
+    "TMPDIR",
+    "TMP",
+    "TEMP",
+    "SSL_CERT_FILE",
+    "SSL_CERT_DIR",
+    "GIT_SSL_CAINFO",
+    "SYSTEMROOT",
+)
 
 
 class SkillExecutor:
@@ -98,6 +117,7 @@ class SkillExecutor:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=str(skill.directory),
+            env=self._skill_env(),
         )
         payload = json.dumps(inputs).encode("utf-8")
         try:
@@ -114,6 +134,15 @@ class SkillExecutor:
         except json.JSONDecodeError:
             err = stderr.decode("utf-8", "replace").strip() or "no output from skill"
             return {"error": f"malformed skill output: {err}"}
+
+    def _skill_env(self) -> dict[str, str]:
+        """Build a minimal, secret-free environment for the skill subprocess.
+
+        Only base-safe variables plus any explicitly allow-listed names (e.g.
+        integration credentials) are passed through. Server secrets never are.
+        """
+        allowed = set(_SAFE_ENV_VARS) | self._settings.skill_env_allow
+        return {k: v for k, v in os.environ.items() if k in allowed}
 
     @staticmethod
     def _result(
