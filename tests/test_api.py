@@ -80,3 +80,24 @@ def test_mcp_tools_call(client):
 def test_mcp_notification_returns_202(client):
     resp = client.post("/mcp", json={"jsonrpc": "2.0", "method": "notifications/initialized"})
     assert resp.status_code == 202
+
+
+def test_download_skill_zip(client):
+    resp = client.get("/api/v1/skills/text-statistics/download")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/zip"
+    import io
+    import zipfile
+
+    names = zipfile.ZipFile(io.BytesIO(resp.content)).namelist()
+    assert any(n.endswith("SKILL.md") for n in names)
+
+
+def test_download_unknown_skill_404(client):
+    assert client.get("/api/v1/skills/nope/download").status_code == 404
+
+
+def test_list_includes_updated_timestamp(client):
+    resp = client.get("/api/v1/skills")
+    assert resp.status_code == 200
+    assert all("updated" in s for s in resp.json())

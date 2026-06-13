@@ -16,6 +16,14 @@ from skill_registry.services.loader import LoadedSkill
 _logger = get_logger(__name__)
 
 
+def _mtime(skill: LoadedSkill) -> float | None:
+    """Modification time of the skill's SKILL.md, for 'recently updated' sorting."""
+    try:
+        return (skill.directory / "SKILL.md").stat().st_mtime
+    except OSError:
+        return None
+
+
 class SearchService:
     """Ranks skills against a free-text query."""
 
@@ -42,13 +50,15 @@ class SearchService:
 
         if not query:
             ordered = sorted(candidates, key=lambda s: s.name)
-            summaries = [SkillSummary.from_manifest(s.manifest) for s in ordered]
+            summaries = [SkillSummary.from_manifest(s.manifest, updated=_mtime(s)) for s in ordered]
             return summaries[offset : offset + limit]
 
         scored = self._score(query, candidates)
         scored.sort(key=lambda pair: pair[1], reverse=True)
         ranked = [
-            SkillSummary.from_manifest(skill.manifest, relevance=round(score, 4))
+            SkillSummary.from_manifest(
+                skill.manifest, relevance=round(score, 4), updated=_mtime(skill)
+            )
             for skill, score in scored
             if score > 0
         ]

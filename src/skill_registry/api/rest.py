@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
 
 from skill_registry.api.deps import get_registry, require_admin
 from skill_registry.errors import ManifestError, SkillNotFoundError
@@ -39,6 +39,20 @@ async def get_skill(name: str, registry: SkillRegistry = Depends(get_registry)) 
         return registry.get_manifest(name)
     except SkillNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/skills/{name}/download")
+async def download_skill(name: str, registry: SkillRegistry = Depends(get_registry)) -> Response:
+    """Download a skill's folder as a ZIP archive."""
+    try:
+        data = registry.package_skill(name)
+    except SkillNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return Response(
+        content=data,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{name}.zip"'},
+    )
 
 
 @router.post("/skills/{name}/execute", response_model=ExecutionResult)

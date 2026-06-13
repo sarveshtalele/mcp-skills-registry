@@ -6,8 +6,10 @@ execution, search, persistence, and auditing.
 
 from __future__ import annotations
 
+import io
 import json
 import shutil
+import zipfile
 
 from skill_registry.config import Settings
 from skill_registry.errors import SkillNotFoundError, ValidationError
@@ -209,6 +211,18 @@ class SkillRegistry:
             github_url=github_url,
             warnings=_skill_warnings(manifest, files),
         )
+
+    def package_skill(self, name: str) -> bytes:
+        """Return the skill's folder as a ZIP archive (``<name>/...`` layout)."""
+        skill = self.get(name)
+        root = skill.directory
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            for path in sorted(root.rglob("*")):
+                if path.is_dir() or "__pycache__" in path.parts or path.suffix == ".pyc":
+                    continue
+                zf.write(path, arcname=f"{name}/{path.relative_to(root)}")
+        return buffer.getvalue()
 
     def delete_skill(self, name: str) -> None:
         """Remove a skill from disk and refresh the catalogue."""

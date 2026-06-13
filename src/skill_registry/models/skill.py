@@ -143,9 +143,15 @@ class SkillSummary(BaseModel):
     tags: list[str]
     status: SkillStatus
     relevance: float | None = None
+    updated: float | None = None  # epoch seconds of the SKILL.md mtime
 
     @classmethod
-    def from_manifest(cls, manifest: SkillManifest, relevance: float | None = None) -> SkillSummary:
+    def from_manifest(
+        cls,
+        manifest: SkillManifest,
+        relevance: float | None = None,
+        updated: float | None = None,
+    ) -> SkillSummary:
         """Build a summary from a full manifest."""
         return cls(
             name=manifest.name,
@@ -155,4 +161,5 @@ class SkillSummary(BaseModel):
             tags=manifest.tags,
             status=manifest.status,
             relevance=relevance,
+            updated=updated,
         )

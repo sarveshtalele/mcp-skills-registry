@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-// Same-origin API (the FastAPI server serves this static app and the API).
 const API = "/api/v1";
 
 type Skill = {
@@ -11,13 +10,19 @@ type Skill = {
   description: string;
   category: string;
   tags: string[];
+  updated: number | null;
 };
 type Agent = { name: string; version: string; description: string; skills: string[] };
+type Sort = "recent" | "name" | "category";
+
+const RECENT_WINDOW = 7 * 24 * 3600; // 7 days in seconds
 
 export default function Page() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<string>("all");
+  const [sort, setSort] = useState<Sort>("recent");
   const [tab, setTab] = useState<"browse" | "upload">("browse");
 
   async function refresh() {
@@ -29,78 +34,110 @@ export default function Page() {
       setSkills(Array.isArray(s) ? s : []);
       setAgents(Array.isArray(a) ? a : []);
     } catch {
-      /* server may be waking up */
+      /* server waking up */
     }
   }
   useEffect(() => {
     refresh();
   }, []);
 
-  async function remove(kind: "skills" | "agents", name: string) {
-    if (!confirm(`Delete ${name}? This removes it from the registry.`)) return;
-    await fetch(`${API}/${kind}/${name}`, { method: "DELETE" });
-    refresh();
-  }
+  const categories = useMemo(
+    () => ["all", ...Array.from(new Set(skills.map((s) => s.category))).sort()],
+    [skills],
+  );
 
-  const filtered = useMemo(() => {
+  const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return skills;
-    return skills.filter(
-      (s) =>
+    let list = skills.filter((s) => {
+      const matchesCat = category === "all" || s.category === category;
+      const matchesQ =
+        !q ||
         s.name.toLowerCase().includes(q) ||
         s.description.toLowerCase().includes(q) ||
-        s.tags?.some((t) => t.toLowerCase().includes(q)),
-    );
-  }, [skills, query]);
+        s.tags?.some((t) => t.toLowerCase().includes(q));
+      return matchesCat && matchesQ;
+    });
+    list = [...list].sort((a, b) => {
+      if (sort === "name") return a.name.localeCompare(b.name);
+      if (sort === "category") return a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
+      return (b.updated ?? 0) - (a.updated ?? 0); // recent
+    });
+    return list;
+  }, [skills, query, category, sort]);
+
+  const now = Date.now() / 1000;
 
   return (
     <>
       <header className="hero">
         <span className="eyebrow">MCP Skill Registry</span>
-        <h1>Skills &amp; agents,<br />ready for any client.</h1>
+        <h1>Discover, run &amp; share<br />MCP skills.</h1>
         <p>
-          Browse the catalogue, upload your own skills and agents, and run them from
-          Claude Code, Claude Desktop, or GitHub Copilot.
+          A curated catalogue of skills and agents for Claude Code, Claude Desktop, and
+          GitHub Copilot — browse, filter, download, or publish your own.
         </p>
         <div className="stats">
           <div className="stat"><div className="n">{skills.length}</div><div className="l">Skills</div></div>
           <div className="stat"><div className="n">{agents.length}</div><div className="l">Agents</div></div>
-          <div className="stat"><div className="n">MCP</div><div className="l">Streamable HTTP</div></div>
+          <div className="stat"><div className="n">{categories.length - 1}</div><div className="l">Categories</div></div>
         </div>
         <div className="seg">
           <button className={tab === "browse" ? "active" : ""} onClick={() => setTab("browse")}>Browse</button>
-          <button className={tab === "upload" ? "active" : ""} onClick={() => setTab("upload")}>Upload</button>
+          <button className={tab === "upload" ? "active" : ""} onClick={() => setTab("upload")}>Publish</button>
         </div>
       </header>
 
       <main className="wrap">
         {tab === "browse" ? (
           <>
-            <div className="section">
-              <h2>Skills</h2>
+            <div className="toolbar">
               <input
                 className="search"
                 placeholder="Search skills…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
-              <div className="grid">
-                {filtered.map((s) => (
-                  <div className="card" key={s.name}>
-                    <div className="top">
-                      <h3>{s.name}</h3>
-                      <span className="ver">v{s.version}</span>
-                    </div>
-                    <p>{s.description}</p>
-                    <div className="tags">
-                      <span className="group-pill">{s.category}</span>
-                      {s.tags?.slice(0, 3).map((t) => <span className="tag" key={t}>{t}</span>)}
-                    </div>
-                    <button className="del" onClick={() => remove("skills", s.name)}>Delete</button>
+              <select className="sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
+                <option value="recent">Recently updated</option>
+                <option value="name">Name (A–Z)</option>
+                <option value="category">Category</option>
+              </select>
+            </div>
+
+            <div className="chips">
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  className={`chip ${category === c ? "on" : ""}`}
+                  onClick={() => setCategory(c)}
+                >
+                  {c === "all" ? "All" : c}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid">
+              {visible.map((s) => (
+                <div className="card" key={s.name}>
+                  <div className="top">
+                    <h3>{s.name}</h3>
+                    <span className="ver">v{s.version}</span>
                   </div>
-                ))}
-                {filtered.length === 0 && <p className="muted">No skills match “{query}”.</p>}
-              </div>
+                  <div className="meta">
+                    <span className="group-pill">{s.category}</span>
+                    {s.updated && now - s.updated < RECENT_WINDOW && <span className="new">NEW</span>}
+                  </div>
+                  <p>{s.description}</p>
+                  <div className="tags">
+                    {s.tags?.slice(0, 4).map((t) => <span className="tag" key={t}>{t}</span>)}
+                  </div>
+                  <div className="actions">
+                    <a className="btn small primary" href={`${API}/skills/${s.name}/download`}>⬇ Download</a>
+                    <a className="btn small ghost" href={`${API}/skills/${s.name}`} target="_blank" rel="noreferrer">Details</a>
+                  </div>
+                </div>
+              ))}
+              {visible.length === 0 && <p className="muted">No skills match your filters.</p>}
             </div>
 
             <div className="section">
@@ -116,7 +153,6 @@ export default function Page() {
                     <div className="tags">
                       {a.skills?.map((sk) => <span className="tag" key={sk}>{sk}</span>)}
                     </div>
-                    <button className="del" onClick={() => remove("agents", a.name)}>Delete</button>
                   </div>
                 ))}
                 {agents.length === 0 && <p className="muted">No agents yet.</p>}
@@ -146,7 +182,6 @@ type UploadResult = {
 function UploadPanel({ onDone }: { onDone: () => void }) {
   const [kind, setKind] = useState<"skill" | "agent">("skill");
   const [file, setFile] = useState<File | null>(null);
-  const [overwrite, setOverwrite] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [result, setResult] = useState<UploadResult | null>(null);
@@ -165,13 +200,12 @@ function UploadPanel({ onDone }: { onDone: () => void }) {
       const fd = new FormData();
       fd.append("file", file);
       const path = action === "validate" ? `${base}/validate` : `${base}/upload`;
-      const url = `${API}/${path}${action === "upload" ? `?overwrite=${overwrite}` : ""}`;
-      const res = await fetch(url, { method: "POST", body: fd });
+      const res = await fetch(`${API}/${path}`, { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) {
         setMsg({ ok: false, text: `❌ ${data.detail || "Request failed"}` });
       } else if (action === "validate") {
-        setMsg({ ok: true, text: `✅ Valid — ${data.name} v${data.version}. Click Upload & Publish.` });
+        setMsg({ ok: true, text: `✅ Valid — ${data.name} v${data.version}. Click Publish.` });
       } else {
         setMsg({ ok: true, text: `🎉 ${data.name} v${data.version} is live.` });
         setResult(data as UploadResult);
@@ -186,17 +220,15 @@ function UploadPanel({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="section">
-      <h2>Upload</h2>
+      <h2>Publish a {kind}</h2>
       <div className="seg left">
-        <button className={kind === "skill" ? "active" : ""} onClick={() => setKind("skill")}>Skill / Spec-Kit skill</button>
+        <button className={kind === "skill" ? "active" : ""} onClick={() => setKind("skill")}>Skill / Spec-Kit</button>
         <button className={kind === "agent" ? "active" : ""} onClick={() => setKind("agent")}>Agent</button>
       </div>
       <div className="panel">
         <label className="drop">
           <input type="file" accept=".zip" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setMsg(null); setResult(null); }} />
-          {file ? (
-            <strong>{file.name}</strong>
-          ) : (
+          {file ? <strong>{file.name}</strong> : (
             <>
               <strong>Click to choose a {kind} .zip</strong>
               <span className="muted">
@@ -205,28 +237,19 @@ function UploadPanel({ onDone }: { onDone: () => void }) {
             </>
           )}
         </label>
-
         <div className="row">
           <button className="btn ghost" disabled={busy} onClick={() => go("validate")}>Validate format</button>
           <button className="btn primary" disabled={busy} onClick={() => go("upload")}>Upload &amp; Publish</button>
-          <label className="checkbox">
-            <input type="checkbox" checked={overwrite} onChange={(e) => setOverwrite(e.target.checked)} />
-            Overwrite if it exists
-          </label>
         </div>
-
         {msg && <div className={`result ${msg.ok ? "ok" : "err"}`}>{msg.text}</div>}
-
         {result && (
           <div className="report">
             <div className="report-h">Installed files</div>
-            <ul className="tree">
-              {result.installed_files.map((f) => <li key={f}><code>{f}</code></li>)}
-            </ul>
+            <ul className="tree">{result.installed_files.map((f) => <li key={f}><code>{f}</code></li>)}</ul>
             {result.warnings.length > 0 && (
               <>
                 <div className="report-h">Advisories</div>
-                <ul className="warn">{result.warnings.map((wn, i) => <li key={i}>{wn}</li>)}</ul>
+                <ul className="warn">{result.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
               </>
             )}
             {result.github_url && (
