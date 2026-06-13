@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api/v1", tags=["skills"])
 async def list_skills(
     q: str | None = Query(None, description="Free-text search query"),
     category: str | None = Query(None),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     registry: SkillRegistry = Depends(get_registry),
 ) -> list[SkillSummary]:
