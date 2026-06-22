@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import io
 import shutil
+import stat
 import zipfile
 from pathlib import Path, PurePosixPath
 
@@ -51,6 +52,7 @@ class SkillInstaller:
             raise InstallError(f"not a valid ZIP archive: {exc}") from exc
         with archive:
             self._check_zip_bomb(archive)
+            self._validate_members(archive)
             root = self._find_root(archive, "AGENT.md")
             raw = archive.read(f"{root}AGENT.md").decode("utf-8")
             data_fm, _ = parse_frontmatter(raw)
@@ -112,6 +114,7 @@ class SkillInstaller:
 
         with archive:
             self._check_zip_bomb(archive)
+            self._validate_members(archive)
             root = self._find_skill_root(archive)
             manifest = self._read_manifest(archive, root)
             target = self._skills_dir / manifest.name
@@ -146,6 +149,7 @@ class SkillInstaller:
             raise InstallError(f"not a valid ZIP archive: {exc}") from exc
         with archive:
             self._check_zip_bomb(archive)
+            self._validate_members(archive)
             root = self._find_skill_root(archive)
             manifest = self._read_manifest(archive, root)
             if manifest.name.startswith("_"):
@@ -178,6 +182,13 @@ class SkillInstaller:
         total = sum(info.file_size for info in archive.infolist())
         if total > self._settings.max_uncompressed_bytes:
             raise InstallError("archive uncompressed size exceeds the allowed limit")
+
+    @classmethod
+    def _validate_members(cls, archive: zipfile.ZipFile) -> None:
+        for info in archive.infolist():
+            cls._reject_unsafe(info.filename)
+            if stat.S_IFMT(info.external_attr >> 16) == stat.S_IFLNK:
+                raise InstallError(f"symlink member is not allowed: {info.filename}")
 
     def _find_skill_root(self, archive: zipfile.ZipFile) -> str:
         """Return the in-archive prefix that directly contains SKILL.md."""

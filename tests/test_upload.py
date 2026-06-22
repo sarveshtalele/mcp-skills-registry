@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import stat
 import zipfile
 
 from tests.conftest import make_skill_zip
@@ -81,6 +82,30 @@ def test_zip_slip_rejected(writable_client):
     # Either rejected as unsafe path or as an invalid manifest; never written outside.
     resp = _post_zip(writable_client, buffer.getvalue())
     assert resp.status_code in (400, 422)
+
+
+def test_traversal_wrapper_rejected(writable_client):
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as zf:
+        with zipfile.ZipFile(io.BytesIO(make_skill_zip("traversal-root"))) as source:
+            for info in source.infolist():
+                zf.writestr(f"../{info.filename}", source.read(info))
+    resp = _post_zip(writable_client, buffer.getvalue())
+    assert resp.status_code == 400
+
+
+def test_symlink_member_rejected(writable_client):
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as zf:
+        with zipfile.ZipFile(io.BytesIO(make_skill_zip("link-skill"))) as source:
+            for info in source.infolist():
+                zf.writestr(info, source.read(info))
+        link = zipfile.ZipInfo("link-skill/docs/latest")
+        link.create_system = 3
+        link.external_attr = (stat.S_IFLNK | 0o777) << 16
+        zf.writestr(link, "README.md")
+    resp = _post_zip(writable_client, buffer.getvalue())
+    assert resp.status_code == 400
 
 
 def test_imperfect_manifest_is_coerced_not_rejected(writable_client):
