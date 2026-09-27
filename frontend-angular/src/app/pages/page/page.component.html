@@ -1,0 +1,296 @@
+<!--
+  Port of frontend/app/page.tsx. Every {expr} that sits beside literal text in JSX is its own text node in React;
+  each such interpolation is wrapped in <ng-container> so Angular emits the same text-node boundaries
+  (one merged node shifts glyphs by sub-pixels).
+-->
+<nav class="nav">
+  <div class="nav-in">
+    <div class="brand" (click)="go('skills')"><span class="logo">🧩</span> MCP Marketplace</div>
+    <input class="nav-search" placeholder="Search skills, tags, categories…" [value]="query()" (input)="onSearch($any($event.target).value)" />
+    <div class="nav-links">
+      <button [class]="view() === 'dashboard' ? 'on' : ''" (click)="go('dashboard')">Dashboard</button>
+      <button [class]="view() === 'skills' ? 'on' : ''" (click)="go('skills')">Skills</button>
+      <button [class]="view() === 'agents' ? 'on' : ''" (click)="go('agents')">Agents</button>
+      <button [class]="view() === 'publish' ? 'on' : ''" (click)="go('publish')">Publish</button>
+    </div>
+  </div>
+</nav>
+
+@if (view() === 'skills' || view() === 'agents') {
+  <header class="hero">
+    <span class="eyebrow">One MCP server · <ng-container>{{ skills().length }}</ng-container> tools</span>
+    <h1>The marketplace for<br />MCP skills &amp; agents.</h1>
+    <p>Browse, try, and add tools to Claude Code, Claude Desktop, or VS Code — from a single endpoint.</p>
+  </header>
+}
+
+<main class="wrap">
+  @if (view() === 'dashboard') {
+    <div class="dash">
+      <section class="home-hero">
+        <span class="eyebrow">Model Context Protocol · Marketplace</span>
+        <h1>One server.<br />Every skill your agent needs.</h1>
+        <p>Connect once and your client gets <ng-container>{{ stats()?.skills ?? skills().length }}</ng-container> ready-to-run tools — spec-driven development, code analysis, modernization, and integrations.</p>
+        <div class="home-cta">
+          <button class="btn primary" (click)="go('skills')">Explore skills</button>
+          <a class="btn ghost" href="#connect">Connect a client</a>
+        </div>
+      </section>
+
+      <div class="metrics">
+        <ng-container *ngTemplateOutlet="metric; context: { n: '' + (stats()?.skills ?? skills().length), label: 'Skills', icon: '🧩' }" />
+        <ng-container *ngTemplateOutlet="metric; context: { n: '' + (stats()?.agents ?? agents().length), label: 'Agents', icon: '🤖' }" />
+        <ng-container *ngTemplateOutlet="metric; context: { n: '' + (stats()?.categories ?? cats().length), label: 'Categories', icon: '🗂' }" />
+        <ng-container *ngTemplateOutlet="metric; context: { n: '1', label: 'MCP server', icon: '🔌' }" />
+      </div>
+
+      <section id="connect" class="home-sec">
+        <h3>Add to your client</h3>
+        <p class="muted">Pick your tool — copy the connector, you're live in seconds.</p>
+        <ng-container *ngTemplateOutlet="connectors; context: { where: 'dash' }" />
+      </section>
+
+      <section class="home-sec">
+        <h4>By category</h4>
+        <div class="dash-card">
+          @for (entry of cats(); track entry[0]) {
+            <button class="bar-row bar-click" (click)="go('skills')">
+              <span class="bar-label">{{ entry[0] }}</span>
+              <span class="bar"><span [style.width]="(entry[1] / maxCat()) * 100 + '%'"></span></span>
+              <span class="bar-n">{{ entry[1] }}</span>
+            </button>
+          }
+        </div>
+      </section>
+
+      <section class="home-sec">
+        <h4>Recently updated</h4>
+        <div class="grid">
+          @for (s of recent(); track s.name) {
+            <button class="card" (click)="openDetail('skill', s.name)">
+              <div class="top"><h3>{{ s.name }}</h3><span class="ver">v<ng-container>{{ s.version }}</ng-container></span></div>
+              <div class="meta"><span class="group-pill">{{ s.category }}</span></div>
+              <p>{{ s.description }}</p>
+            </button>
+          }
+        </div>
+      </section>
+    </div>
+  }
+
+  @if (view() === 'skills') {
+    <div class="toolbar">
+      <div class="chips">
+        @for (c of categories(); track c) {
+          <button [class]="'chip ' + (category() === c ? 'on' : '')" (click)="category.set(c)">{{ c === 'all' ? 'All' : c }}</button>
+        }
+      </div>
+      <select class="sort" (change)="sort.set($any($event.target).value)">
+        <option value="recent" [selected]="sort() === 'recent'">Recently updated</option>
+        <option value="name" [selected]="sort() === 'name'">Name (A–Z)</option>
+        <option value="category" [selected]="sort() === 'category'">Category</option>
+      </select>
+    </div>
+    <div class="count"><ng-container>{{ visible().length }}</ng-container> skill<ng-container>{{ visible().length === 1 ? '' : 's' }}</ng-container></div>
+    <div class="grid">
+      @for (s of visible(); track s.name) {
+        <button class="card" (click)="openDetail('skill', s.name)">
+          <div class="top">
+            <h3>{{ s.name }}</h3>
+            <span class="ver">v<ng-container>{{ s.version }}</ng-container></span>
+          </div>
+          <div class="meta">
+            <span class="group-pill">{{ s.category }}</span>
+            @if (s.updated === 0) {0}
+            @if (s.updated && now - s.updated < RECENT) {<span class="new">NEW</span>}
+          </div>
+          <p>{{ s.description }}</p>
+          <div class="tags">@for (t of (s.tags ?? []).slice(0, 4); track t) {<span class="tag">{{ t }}</span>}</div>
+        </button>
+      }
+      @if (visible().length === 0) {
+        <p class="muted">No skills match your filters.</p>
+      }
+    </div>
+  }
+
+  @if (view() === 'agents') {
+    <div class="count"><ng-container>{{ agents().length }}</ng-container> agent<ng-container>{{ agents().length === 1 ? '' : 's' }}</ng-container></div>
+    <div class="grid">
+      @for (a of agents(); track a.name) {
+        <button class="card" (click)="openDetail('agent', a.name)">
+          <div class="top">
+            <h3>{{ a.name }}</h3>
+            <span class="ver">v<ng-container>{{ a.version }}</ng-container></span>
+          </div>
+          <p>{{ a.description }}</p>
+          <div class="tags">@for (sk of a.skills ?? []; track sk) {<span class="tag">{{ sk }}</span>}</div>
+        </button>
+      }
+    </div>
+  }
+
+  @if (view() === 'publish') {
+    <div class="section">
+      <h2>Publish a <ng-container>{{ upKind() }}</ng-container></h2>
+      <div class="seg left">
+        <button [class]="upKind() === 'skill' ? 'active' : ''" (click)="upKind.set('skill')">Skill / Spec-Kit</button>
+        <button [class]="upKind() === 'agent' ? 'active' : ''" (click)="upKind.set('agent')">Agent</button>
+      </div>
+      <div class="panel">
+        <label class="drop">
+          <input type="file" accept=".zip" (change)="onFile($any($event.target))" />
+          @if (file(); as f) {
+            <strong>{{ f.name }}</strong>
+          } @else {
+            <strong>Click to choose a <ng-container>{{ upKind() }}</ng-container> .zip</strong>
+            <span class="muted">Must contain <ng-container>{{ upKind() === 'skill' ? 'SKILL.md' : 'AGENT.md' }}</ng-container> at the root or one folder deep.</span>
+          }
+        </label>
+        <div class="row">
+          <button class="btn ghost" [disabled]="upBusy()" (click)="upload('validate')">Validate format</button>
+          <button class="btn primary" [disabled]="upBusy()" (click)="upload('upload')">Upload &amp; Publish</button>
+        </div>
+        @if (msg(); as m) {
+          <div [class]="'result ' + (m.ok ? 'ok' : 'err')">{{ m.text }}</div>
+        }
+        @if (result(); as r) {
+          <div class="report">
+            <div class="report-h">Installed files</div>
+            <ul class="tree">@for (f of r.installed_files; track f) {<li><code>{{ f }}</code></li>}</ul>
+            @if (r.github_url) {
+              <p class="muted">Committed to GitHub — <a [href]="r.github_url">view commit</a>.</p>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <div class="foot">Single MCP endpoint: <code>{{ mcpUrl }}</code></div>
+</main>
+
+@if (detail(); as d) {
+  <div class="overlay" (click)="closeDetail()">
+    <aside class="drawer" (click)="$event.stopPropagation()">
+      <button class="close" (click)="closeDetail()">✕</button>
+      @if (!manifest() && !detailErr()) {
+        <p class="muted">Loading…</p>
+      }
+      @if (detailErr(); as err) {
+        <p class="result err">{{ err }}</p>
+      }
+      @if (manifest(); as m) {
+        <div class="d-head">
+          <h2>{{ m.name }}</h2>
+          <span class="ver">v<ng-container>{{ m.version }}</ng-container></span>
+        </div>
+        <div class="meta">
+          @if (m.category) {<span class="group-pill">{{ m.category }}</span>}
+          @for (t of m.tags ?? []; track t) {<span class="tag">{{ t }}</span>}
+        </div>
+        <p class="d-desc">{{ m.description }}</p>
+
+        <div class="d-sec">
+          <h4>Use in your client</h4>
+          <p class="muted">Exposed as the MCP tool <code>{{ m.name }}</code> on the single server below.</p>
+          <ng-container *ngTemplateOutlet="connectors; context: { where: 'drawer' }" />
+        </div>
+
+        @if (d.kind === 'skill') {
+          <div class="d-sec">
+            <h4>Inputs</h4>
+            <ng-container *ngTemplateOutlet="paramTable; context: { params: m.inputs ?? [] }" />
+          </div>
+          <div class="d-sec">
+            <h4>Outputs</h4>
+            <ng-container *ngTemplateOutlet="paramTable; context: { params: m.outputs ?? [] }" />
+          </div>
+          <div class="d-sec">
+            <h4>Try it</h4>
+            <div class="tryform">
+              @for (p of m.inputs ?? []; track p.name) {
+                <label class="field">
+                  <span>{{ p.name }}@if (p.required) {<em>*</em>}</span>
+                  @if (p.enum) {
+                    <select (change)="setVal(p.name, $any($event.target).value)">
+                      <option value="" [selected]="(vals()[p.name] ?? '') === ''">—</option>
+                      @for (o of p.enum; track o) {<option [value]="o" [selected]="vals()[p.name] === o">{{ o }}</option>}
+                    </select>
+                  } @else {
+                    <input [placeholder]="p.type + (p.type === 'array' ? ' (comma-separated)' : '')" [value]="vals()[p.name] ?? ''" (input)="setVal(p.name, $any($event.target).value)" />
+                  }
+                </label>
+              }
+            </div>
+            <button class="btn primary" [disabled]="busy()" (click)="run(m.name, m.inputs ?? [])">{{ busy() ? 'Running…' : 'Run skill' }}</button>
+            @if (out(); as o) {
+              <pre class="output">{{ o }}</pre>
+            }
+          </div>
+          <div class="d-sec d-actions">
+            <a class="btn primary" [href]="apiBase + '/skills/' + m.name + '/download'">⬇ Download skill</a>
+          </div>
+        }
+
+        @if (d.kind === 'agent') {
+          <div class="d-sec">
+            <h4>Workflow</h4>
+            <ol class="workflow">
+              @for (w of m.workflow ?? []; track $index) {
+                <li><strong>{{ w.step }}</strong>@if (w.uses) { → <code>{{ w.uses }}</code>}@if (w.description) {<div class="muted">{{ w.description }}</div>}</li>
+              }
+            </ol>
+            <h4>Skills used</h4>
+            <div class="tags">@for (s of m.skills ?? []; track s) {<span class="tag">{{ s }}</span>}</div>
+          </div>
+        }
+      }
+    </aside>
+  </div>
+}
+
+<ng-template #metric let-n="n" let-label="label" let-icon="icon">
+  <div class="metric">
+    <div class="metric-icon">{{ icon }}</div>
+    <div class="metric-n">{{ n }}</div>
+    <div class="metric-l">{{ label }}</div>
+  </div>
+</ng-template>
+
+<ng-template #connectors let-where="where">
+  <div class="connectors">
+    @for (c of clients; track c.key) {
+      <div class="conn-card">
+        <div class="conn-icon">{{ c.icon }}</div>
+        <div class="conn-name">{{ c.name }}</div>
+        <div class="conn-tag">{{ c.tagline }}</div>
+        <div class="conn-actions">
+          <button class="copy" (click)="copy(where + ':' + c.key, c.config)">{{ copied()[where + ':' + c.key] ? 'Copied' : 'Copy' }}</button>
+          <button class="conn-toggle" (click)="toggleConn(where, c.key)">{{ openConn()[where] === c.key ? 'Hide config' : 'View config' }}</button>
+        </div>
+        @if (openConn()[where] === c.key) {
+          <pre class="snippet-code">{{ c.config }}</pre>
+        }
+        <div class="conn-note">{{ c.note }}</div>
+      </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #paramTable let-params="params">
+  @if (!params.length) {
+    <p class="muted">—</p>
+  } @else {
+    <table class="kv">
+      <thead><tr><th>Name</th><th>Type</th><th>Req</th><th>Description</th></tr></thead>
+      <tbody>
+        @for (p of params; track p.name) {
+          <tr>
+            <td><code>{{ p.name }}</code></td><td>{{ p.type }}</td><td>{{ p.required ? '✓' : '—' }}</td><td>{{ p.description }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</ng-template>
